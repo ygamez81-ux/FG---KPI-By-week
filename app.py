@@ -34,19 +34,8 @@ INACTIVOS=['Adidas','CCM Hockey','Dallas Cowboys','Dickies','Fanatics Licensed S
            'Profile','Southern Tide','UA-GFS','Upward Sports','Golds Gym','Walls','SLD','Oakley']
 NO_VMI=['Duluth Trading','Tiltworks','Vortex Optics']
 CMAP_HN={'Regular':'Regulars','VMI':'VMI','Exceso':'Excess','Irregulares':'Irregulars','Obsoleto':'Obsolete'}
-CMAP_TLP={0:'Grupo Beta',10:'Crazy Shirts',15:'Simply Southern',25:'Dickies',28:'Renfro',
-          30:'INX PRINTS INC.',36:'Timberland',40:'NOVUS',48:'Vans',56:'Outerstuff LTD',
-          81:'Under Armour',100:'Textiles La Paz',101:'TLP Vans',103:'TLP OUTERSTUFF'}
-CMAP_HN_CUSTOMER={
-    0:'Grupo Beta',2:'Champion',3:'GFS',5:'SLD',8:'Jansport',10:'Crazy Shirts',11:'Dickies',
-    12:'STUSSY, Inc',14:'Harley-Davidson Motor Company, Inc.',15:'Simply Southern',16:'Carhartt',
-    18:'Fanatics Licensed Sports Group',25:'Dickies',26:'G&G Outfitters, INC',28:'Renfro',
-    30:'INX PRINTS INC.',36:'Timberland',40:'NOVUS',44:'Knigths Apparel',45:'Duluth Trading',
-    48:'Vans',49:'UA-GFS',50:'Golds Gym',53:'Walls',56:'Outerstuff LTD',65:'Upward Sports',
-    67:'Dallas Cowboys',68:'Oakley',71:'Adidas',72:'Southern Tide',74:'CCM Hockey',
-    81:'Under Armour',83:'Profile',85:'Tiltworks',89:'Kerusso inc.',91:'Vortex Optics',
-    99:'Uniforms',100:'Textiles La Paz',101:'TLP Vans',103:'TLP OUTERSTUFF'
-}
+CMAP_TLP={}
+CMAP_HN_CUSTOMER={}
 TLP_ORDER=['Crazy Shirts','Dickies','Grupo Beta','INX PRINTS INC.','Outerstuff LTD','Renfro',
            'Simply Southern','Textiles La Paz','TLP OUTERSTUFF','TLP Vans','Under Armour','Vans','NOVUS','Timberland']
 
@@ -100,7 +89,7 @@ def apply_program(df):
 def classify_honduras(carton_df, open_df):
     df=carton_df.copy()
     df['Quantity']=pd.to_numeric(df['Quantity'].astype(str).str.replace(',',''),errors='coerce').fillna(0)
-    df['Customer Name']=df['Customer'].map(CMAP_HN_CUSTOMER).fillna('Customer '+df['Customer'].astype(str))
+    df['Customer Name']=df['Customer'].astype(str)
     df['Clasificacion']=None
     open_po=set(open_df['PONumber'].astype(str).str.strip().dropna())
     no_vmi=df['Customer Name'].isin(NO_VMI)
@@ -138,7 +127,7 @@ def classify_honduras(carton_df, open_df):
 def classify_tlp(carton_df):
     df=carton_df.copy()
     df['Quantity']=pd.to_numeric(df['Quantity'].astype(str).str.replace(',',''),errors='coerce').fillna(0)
-    df['Customer Name']=df['Customer'].map(CMAP_TLP).fillna('Customer '+df['Customer'].astype(str))
+    df['Customer Name']=df['Customer'].astype(str)
     df['Clasificacion']=None
     df.loc[df['Is Second'].isin(['Second','Third']),'Clasificacion']='TLP Irregulars'
     df.loc[df['Clasificacion'].isna()&(df['Box Tag']=='Blanks Excess'),'Clasificacion']='TLP Blanks Excess'
