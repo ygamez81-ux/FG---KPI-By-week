@@ -603,23 +603,24 @@ def build_excel_tlp(df,wk_prev=None,wk_label='WK13'):
 with st.sidebar:
     st.markdown("## 📦 Inventory Hub")
     st.markdown("---")
-    bodega=st.radio("Bodega:",["🏭 Honduras","🏗️ TLP"],label_visibility="collapsed")
-    st.markdown("---")
     week_label=st.text_input("Semana actual",value="WK13",label_visibility="collapsed")
     st.markdown(f"**Semana: {week_label}**")
     st.markdown("---")
+    st.markdown("**Reglas Honduras:**")
     rules_hn=["Excluir Cut","Picked incluido","Is Second/Third → Irregulares","Locker Stock → VMI",
               "Sin VMI: Duluth, Tiltworks, Vortex","PO Open Order → Regular","Box Tag → Exceso/Obsoleto",
               "Create Date → Obsoleto/Exceso","FG vs Wip por Box Status"]
+    for i,r in enumerate(rules_hn,1):
+        st.markdown(f"<div style='font-size:.78rem;padding:2px 0;color:#a8c4e0;'><b style='color:#1B6CA8;'>{i}.</b> {r}</div>",unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("**Reglas TLP:**")
     rules_tlp=["Is Second/Third → TLP Irregulars","Blanks Excess → TLP Blanks Excess",
                "Printed Excess → TLP Printed Excess","Packed/Picked → TLP sin clasificacion","Resto → Wip"]
-    rules=rules_hn if bodega=="🏭 Honduras" else rules_tlp
-    st.markdown("**Reglas:**")
-    for i,r in enumerate(rules,1):
+    for i,r in enumerate(rules_tlp,1):
         st.markdown(f"<div style='font-size:.78rem;padding:2px 0;color:#a8c4e0;'><b style='color:#1B6CA8;'>{i}.</b> {r}</div>",unsafe_allow_html=True)
 
 # ── Honduras ──
-if bodega=="🏭 Honduras":
+if True:
     st.markdown('<div class="page-title">Bodega Honduras</div>',unsafe_allow_html=True)
     st.markdown(f'<div class="page-sub">Clasificación automática · {week_label}</div>',unsafe_allow_html=True)
     c1,c2=st.columns(2)
@@ -692,8 +693,9 @@ if bodega=="🏭 Honduras":
     elif not (carton_file and open_file):
         st.markdown('<div class="warning-box">📂 Carga el <strong>Carton Report</strong> y el <strong>Open Order</strong> para comenzar.</div>',unsafe_allow_html=True)
 
+st.markdown("---")
 # ── TLP ──
-else:
+if True:
     st.markdown('<div class="page-title">Bodega TLP</div>',unsafe_allow_html=True)
     st.markdown(f'<div class="page-sub">Clasificación automática · {week_label}</div>',unsafe_allow_html=True)
     c1,c2=st.columns(2)
