@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import io
 from datetime import datetime
 from openpyxl import Workbook
@@ -12,17 +14,13 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono&display=swap');
 html,body,[class*="css"]{font-family:'DM Sans',sans-serif;}
-.stApp{background-color:#f0f4f8;}
-section[data-testid="stSidebar"]{background-color:#0D2B4E!important;}
-section[data-testid="stSidebar"] *{color:#e8f0f8!important;}
-.metric-card{background:white;border-radius:12px;padding:1rem 1.2rem;border-left:4px solid #1B6CA8;box-shadow:0 2px 8px rgba(13,43,78,0.08);}
-.metric-label{font-size:.75rem;font-weight:500;color:#5a7a99;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
-.metric-value{font-size:1.7rem;font-weight:600;color:#0D2B4E;font-family:'DM Mono',monospace;}
-.metric-sub{font-size:.75rem;color:#8aacca;margin-top:2px;}
-.page-title{font-size:1.8rem;font-weight:600;color:#0D2B4E;border-left:5px solid #1B6CA8;padding-left:14px;margin-bottom:.3rem;}
-.page-sub{font-size:.9rem;color:#5a7a99;padding-left:19px;margin-bottom:1.5rem;}
-.success-box{background:#ecfdf5;border-left:4px solid #10b981;padding:.7rem 1rem;border-radius:0 8px 8px 0;font-size:.88rem;color:#065f46;margin-bottom:1rem;}
-.warning-box{background:#fff8e1;border-left:4px solid #f59e0b;padding:.7rem 1rem;border-radius:0 8px 8px 0;font-size:.88rem;color:#92400e;margin-bottom:1rem;}
+.stApp{background-color:#F1F8F4;}
+section[data-testid="stSidebar"]{background-color:#1B5E20!important;}
+section[data-testid="stSidebar"] *{color:#E8F5E9!important;}
+.page-title{font-size:1.8rem;font-weight:700;color:#1B5E20;border-left:5px solid #4CAF50;padding-left:14px;margin-bottom:.3rem;}
+.page-sub{font-size:.9rem;color:#4CAF50;padding-left:19px;margin-bottom:1.5rem;}
+.success-box{background:#F0FDF4;border-left:4px solid #22C55E;padding:.7rem 1rem;border-radius:0 8px 8px 0;font-size:.88rem;color:#166534;margin-bottom:1rem;}
+.warning-box{background:#FFF8E1;border-left:4px solid #F59E0B;padding:.7rem 1rem;border-radius:0 8px 8px 0;font-size:.88rem;color:#92400E;margin-bottom:1rem;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -619,14 +617,201 @@ with st.sidebar:
     for i,r in enumerate(rules_tlp,1):
         st.markdown(f"<div style='font-size:.78rem;padding:2px 0;color:#a8c4e0;'><b style='color:#1B6CA8;'>{i}.</b> {r}</div>",unsafe_allow_html=True)
 
+
+# ── Color palette helpers ──
+CLAS_COLORS = {
+    'Regular':       '#1B5E20',
+    'Regulars':      '#1B5E20',
+    'VMI':           '#2E7D32',
+    'Irregulares':   '#F9A825',
+    'Irregulars':    '#F9A825',
+    'Exceso':        '#E65100',
+    'Excess':        '#E65100',
+    'Obsoleto':      '#B71C1C',
+    'Obsolete':      '#B71C1C',
+    'TLP Irregulars':       '#F9A825',
+    'TLP Blanks Excess':    '#E65100',
+    'TLP Printed Excess':   '#BF360C',
+    'TLP sin clasificacion':'#37474F',
+    'Wip':           '#546E7A',
+}
+
+def metric_card(label, value, sub, color='#2E7D32'):
+    return f"""
+    <div style="background:white;border-radius:14px;padding:1.3rem 1.5rem;
+    border-left:5px solid {color};box-shadow:0 3px 12px rgba(0,0,0,0.08);height:100%;">
+        <div style="font-size:.72rem;font-weight:600;color:#6B7280;text-transform:uppercase;
+        letter-spacing:.1em;margin-bottom:6px;">{label}</div>
+        <div style="font-size:2rem;font-weight:700;color:#1B5E20;font-family:'DM Mono',monospace;
+        line-height:1.1;">{value}</div>
+        <div style="font-size:.78rem;color:#9CA3AF;margin-top:4px;">{sub}</div>
+    </div>"""
+
+def colored_table(df, val_col='Unidades', pct_col='%'):
+    rows = ''
+    for _, row in df.iterrows():
+        clas = row.get('Clasificacion', row.get('Clasificación', ''))
+        color = CLAS_COLORS.get(clas, '#374151')
+        rows += f"""
+        <tr>
+            <td style="padding:8px 12px;">
+                <span style="display:inline-block;width:10px;height:10px;border-radius:50%;
+                background:{color};margin-right:8px;"></span>
+                <b style="color:{color}">{clas}</b>
+            </td>
+            <td style="padding:8px 12px;text-align:right;">{int(row['Cajas']):,}</td>
+            <td style="padding:8px 12px;text-align:right;font-weight:600;">{int(row[val_col]):,}</td>
+            <td style="padding:8px 12px;text-align:right;">
+                <span style="background:#F0FDF4;color:#166534;padding:2px 8px;border-radius:20px;
+                font-size:.8rem;">{row[pct_col]}</span>
+            </td>
+        </tr>"""
+    return f"""
+    <table style="width:100%;border-collapse:collapse;font-size:.9rem;font-family:'DM Sans',sans-serif;">
+        <thead>
+            <tr style="background:#F0FDF4;border-bottom:2px solid #BBF7D0;">
+                <th style="padding:10px 12px;text-align:left;color:#166534;">Clasificación</th>
+                <th style="padding:10px 12px;text-align:right;color:#166534;">Cajas</th>
+                <th style="padding:10px 12px;text-align:right;color:#166534;">Unidades</th>
+                <th style="padding:10px 12px;text-align:right;color:#166534;">% Total</th>
+            </tr>
+        </thead>
+        <tbody>{rows}</tbody>
+    </table>"""
+
+def render_dashboard(r, key_prefix, week_label, prev_df=None, is_tlp=False):
+    import plotly.express as px
+    import plotly.graph_objects as go
+
+    if is_tlp:
+        tot = int(r['Quantity'].sum())
+        fg = int(r[r['Clasificacion']!='Wip']['Quantity'].sum())
+        wip = int(r[r['Clasificacion']=='Wip']['Quantity'].sum())
+        cards = [
+            ("Total Unidades", f"{tot:,}", f"{len(r):,} cajas", '#1B5E20'),
+            ("Finished Goods", f"{fg:,}", f"{fg/tot*100:.1f}%", '#2E7D32'),
+            ("Wip", f"{wip:,}", f"{wip/tot*100:.1f}%", '#546E7A'),
+            ("Clasificaciones", f"{r['Clasificacion'].nunique()}", "tipos", '#1565C0'),
+        ]
+    else:
+        cut_n, cut_u = st.session_state.get(f'{key_prefix}_cut', (0, 0))
+        tot = int(r['Quantity'].sum())
+        fg = int(r[r['Type']=='Finished Goods']['Quantity'].sum())
+        wip = int(r[r['Type']=='Wip']['Quantity'].sum())
+        cards = [
+            ("Total Unidades", f"{tot:,}", f"{len(r):,} cajas", '#1B5E20'),
+            ("Finished Goods", f"{fg:,}", f"{fg/tot*100:.1f}%", '#2E7D32'),
+            ("Wip", f"{wip:,}", f"{wip/tot*100:.1f}%", '#546E7A'),
+            ("Cut excluidas", f"{cut_n:,}", f"{cut_u:,} uds", '#B71C1C'),
+            ("Tipos", f"{r['Clasificacion'].nunique()}", "clasificaciones", '#1565C0'),
+        ]
+
+    # KPI Cards
+    cols = st.columns(len(cards))
+    for col_w, (lbl, val, sub, color) in zip(cols, cards):
+        with col_w:
+            st.markdown(metric_card(lbl, val, sub, color), unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Charts row 1: Donut + Horizontal bar
+    c1, c2 = st.columns(2)
+    cs = r.groupby('Clasificacion')['Quantity'].sum().sort_values(ascending=False).reset_index()
+    cs.columns = ['Clasificación', 'Unidades']
+    cs['Unidades'] = cs['Unidades'].astype(int)
+    cs['Color'] = cs['Clasificación'].map(CLAS_COLORS).fillna('#6B7280')
+
+    with c1:
+        st.markdown("#### Distribución por clasificación")
+        fig_pie = px.pie(cs, values='Unidades', names='Clasificación',
+                         color='Clasificación',
+                         color_discrete_map=CLAS_COLORS,
+                         hole=0.45)
+        fig_pie.update_traces(textposition='outside', textinfo='percent+label',
+                              textfont_size=11)
+        fig_pie.update_layout(showlegend=False, margin=dict(t=20,b=20,l=20,r=20),
+                              height=320, paper_bgcolor='rgba(0,0,0,0)',
+                              plot_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+    with c2:
+        st.markdown("#### Unidades por cliente")
+        cc = r.groupby('Customer Name')['Quantity'].sum().sort_values(ascending=True).tail(10).reset_index()
+        cc.columns = ['Cliente', 'Unidades']
+        cc['Unidades'] = cc['Unidades'].astype(int)
+        fig_bar = px.bar(cc, x='Unidades', y='Cliente', orientation='h',
+                         color_discrete_sequence=['#2E7D32'])
+        fig_bar.update_layout(margin=dict(t=20,b=20,l=20,r=20), height=320,
+                              paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                              yaxis_title='', xaxis_title='Unidades')
+        fig_bar.update_xaxes(tickformat=',')
+        st.plotly_chart(fig_bar, use_container_width=True)
+
+    # Tendencia WK anterior vs actual
+    if prev_df is not None and 'Clasificacion' in prev_df.columns and 'Quantity' in prev_df.columns:
+        st.markdown("#### Tendencia WK anterior vs actual")
+        prev_df['Quantity'] = pd.to_numeric(prev_df['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0)
+        prev_sum = prev_df.groupby('Clasificacion')['Quantity'].sum().reset_index()
+        prev_sum.columns = ['Clasificacion', 'WK Anterior']
+        curr_sum = r.groupby('Clasificacion')['Quantity'].sum().reset_index()
+        curr_sum.columns = ['Clasificacion', week_label]
+        merged = prev_sum.merge(curr_sum, on='Clasificacion', how='outer').fillna(0)
+        merged['WK Anterior'] = merged['WK Anterior'].astype(int)
+        merged[week_label] = merged[week_label].astype(int)
+        merged['Diff'] = merged[week_label] - merged['WK Anterior']
+        merged['Color'] = merged['Diff'].apply(lambda x: '#2E7D32' if x >= 0 else '#B71C1C')
+
+        fig_trend = go.Figure()
+        fig_trend.add_trace(go.Bar(name='WK Anterior', x=merged['Clasificacion'],
+                                   y=merged['WK Anterior'], marker_color='#A5D6A7'))
+        fig_trend.add_trace(go.Bar(name=week_label, x=merged['Clasificacion'],
+                                   y=merged[week_label], marker_color='#2E7D32'))
+        fig_trend.update_layout(barmode='group', height=320,
+                                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                                margin=dict(t=20,b=20,l=20,r=20),
+                                legend=dict(orientation='h', yanchor='bottom', y=1.02))
+        fig_trend.update_yaxes(tickformat=',')
+        st.plotly_chart(fig_trend, use_container_width=True)
+
+    # Colored summary table
+    st.markdown("#### Resumen por clasificación")
+    sm = r.groupby('Clasificacion').agg(Cajas=('Quantity','count'), Unidades=('Quantity','sum')).reset_index().sort_values('Unidades', ascending=False)
+    sm['Unidades'] = sm['Unidades'].astype(int)
+    sm['%'] = (sm['Unidades']/sm['Unidades'].sum()*100).round(1).astype(str)+'%'
+    st.markdown(colored_table(sm), unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════
+# UI
+# ══════════════════════════════════════════
+with st.sidebar:
+    st.markdown("## 📦 Inventory Hub")
+    st.markdown("---")
+    week_label=st.text_input("Semana actual",value="WK13",label_visibility="collapsed")
+    st.markdown(f"**Semana: {week_label}**")
+    st.markdown("---")
+    st.markdown("**Reglas Honduras:**")
+    rules_hn=["Excluir Cut","Picked incluido","Is Second/Third → Irregulares","Locker Stock → VMI",
+              "Sin VMI: Duluth, Tiltworks, Vortex","PO Open Order → Regular","Box Tag → Exceso/Obsoleto",
+              "Create Date → Obsoleto/Exceso","FG vs Wip por Box Status"]
+    for i,r_item in enumerate(rules_hn,1):
+        st.markdown(f"<div style='font-size:.78rem;padding:2px 0;color:#a8c4e0;'><b style='color:#4CAF50;'>{i}.</b> {r_item}</div>",unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("**Reglas TLP:**")
+    rules_tlp=["Is Second/Third → TLP Irregulars","Blanks Excess → TLP Blanks Excess",
+               "Printed Excess → TLP Printed Excess","Packed/Picked → TLP sin clasificacion","Resto → Wip"]
+    for i,r_item in enumerate(rules_tlp,1):
+        st.markdown(f"<div style='font-size:.78rem;padding:2px 0;color:#a8c4e0;'><b style='color:#4CAF50;'>{i}.</b> {r_item}</div>",unsafe_allow_html=True)
+
 # ── Honduras ──
 if True:
-    st.markdown('<div class="page-title">Bodega Honduras</div>',unsafe_allow_html=True)
+    st.markdown('<div class="page-title">🏭 Bodega Honduras</div>',unsafe_allow_html=True)
     st.markdown(f'<div class="page-sub">Clasificación automática · {week_label}</div>',unsafe_allow_html=True)
     c1,c2=st.columns(2)
     with c1: carton_file=st.file_uploader("📄 Carton Report (CSV)",type=['csv'],key='hn_carton')
     with c2: open_file=st.file_uploader("📄 Open Order (CSV)",type=['csv'],key='hn_open')
-    prev_file=st.file_uploader("📄 Inventario semana anterior (CSV, opcional — para comparativo)",type=['csv'],key='hn_prev')
+    prev_file=st.file_uploader("📄 Inventario semana anterior (CSV, opcional — para comparativo y tendencia)",type=['csv'],key='hn_prev')
 
     if carton_file and open_file:
         st.markdown('<div class="success-box">✅ Archivos cargados. Listo para clasificar.</div>',unsafe_allow_html=True)
@@ -640,47 +825,18 @@ if True:
                 else:st.session_state['hn_prev_df']=None
 
     if 'hn_r' in st.session_state:
-        r=st.session_state['hn_r'];cut_n,cut_u=st.session_state['hn_cut']
-        tot=int(r['Quantity'].sum());fg=int(r[r['Type']=='Finished Goods']['Quantity'].sum())
-        wip=int(r[r['Type']=='Wip']['Quantity'].sum())
-        cols=st.columns(5)
-        for col_w,(lbl,val,sub) in zip(cols,[
-            ("Total Unidades",f"{tot:,}",f"{len(r):,} cajas"),
-            ("Finished Goods",f"{fg:,}",f"{fg/tot*100:.1f}%"),
-            ("Wip",f"{wip:,}",f"{wip/tot*100:.1f}%"),
-            ("Cut excluidas",f"{cut_n:,}",f"{cut_u:,} uds"),
-            ("Tipos",f"{r['Clasificacion'].nunique()}","clasificaciones"),
-        ]):
-            with col_w:st.markdown(f'<div class="metric-card"><div class="metric-label">{lbl}</div><div class="metric-value">{val}</div><div class="metric-sub">{sub}</div></div>',unsafe_allow_html=True)
-        st.markdown("<br>",unsafe_allow_html=True)
-        cl,cr=st.columns(2)
-        with cl:
-            st.markdown("#### Por clasificación")
-            cs=r.groupby('Clasificacion')['Quantity'].sum().sort_values(ascending=False).reset_index()
-            cs.columns=['Clasificación','Unidades'];cs['Unidades']=cs['Unidades'].astype(int)
-            st.bar_chart(cs.set_index('Clasificación'),color='#1B6CA8')
-        with cr:
-            st.markdown("#### Top clientes")
-            cc=r.groupby('Customer Name')['Quantity'].sum().sort_values(ascending=False).head(10).reset_index()
-            cc.columns=['Cliente','Unidades'];cc['Unidades']=cc['Unidades'].astype(int)
-            st.bar_chart(cc.set_index('Cliente'),color='#2E6DA4')
-        st.markdown("#### Resumen")
-        sm=r.groupby('Clasificacion').agg(Cajas=('Quantity','count'),Unidades=('Quantity','sum')).reset_index().sort_values('Unidades',ascending=False)
-        sm['Unidades']=sm['Unidades'].astype(int);sm['%']=(sm['Unidades']/sm['Unidades'].sum()*100).round(1).astype(str)+'%'
-        st.dataframe(sm,use_container_width=True,hide_index=True)
+        r=st.session_state['hn_r']
+        prev_df_hn=st.session_state.get('hn_prev_df')
+        render_dashboard(r,'hn',week_label,prev_df_hn,is_tlp=False)
 
-        # Build prev data for comparativo
         wk_prev=None
-        if st.session_state.get('hn_prev_df') is not None:
-            pdf=st.session_state['hn_prev_df']
-            if 'Clasificacion' in pdf.columns and 'Customer Name' in pdf.columns:
-                pdf['Quantity']=pd.to_numeric(pdf['Quantity'].astype(str).str.replace(',',''),errors='coerce').fillna(0)
-                inv_types=['Regulars','VMI','Excess','Irregulars','Obsolete','Liability']
-                pdf['Clas_Col']=pdf['Clasificacion'].map(CMAP_HN)
-                filt='Type' in pdf.columns
-                pfg=pdf[pdf['Type']=='Finished Goods'] if filt else pdf
-                pp=pfg.pivot_table(index='Customer Name',columns='Clas_Col',values='Quantity',aggfunc='sum',fill_value=0)
-                wk_prev={cli:{t:int(pp.loc[cli,t]) if cli in pp.index and t in pp.columns else 0 for t in inv_types} for cli in ACTIVOS+INACTIVOS}
+        if prev_df_hn is not None and 'Clasificacion' in prev_df_hn.columns and 'Customer Name' in prev_df_hn.columns:
+            prev_df_hn['Quantity']=pd.to_numeric(prev_df_hn['Quantity'].astype(str).str.replace(',',''),errors='coerce').fillna(0)
+            inv_types=['Regulars','VMI','Excess','Irregulars','Obsolete','Liability']
+            prev_df_hn['Clas_Col']=prev_df_hn['Clasificacion'].map(CMAP_HN)
+            pfg=prev_df_hn[prev_df_hn['Type']=='Finished Goods'] if 'Type' in prev_df_hn.columns else prev_df_hn
+            pp=pfg.pivot_table(index='Customer Name',columns='Clas_Col',values='Quantity',aggfunc='sum',fill_value=0)
+            wk_prev={cli:{t:int(pp.loc[cli,t]) if cli in pp.index and t in pp.columns else 0 for t in inv_types} for cli in ACTIVOS+INACTIVOS}
 
         st.markdown("#### Descargar")
         with st.spinner("Generando Excel..."):
@@ -696,7 +852,7 @@ if True:
 st.markdown("---")
 # ── TLP ──
 if True:
-    st.markdown('<div class="page-title">Bodega TLP</div>',unsafe_allow_html=True)
+    st.markdown('<div class="page-title">🏗️ Bodega TLP</div>',unsafe_allow_html=True)
     st.markdown(f'<div class="page-sub">Clasificación automática · {week_label}</div>',unsafe_allow_html=True)
     c1,c2=st.columns(2)
     with c1:tlp_file=st.file_uploader("📄 Carton Report TLP (CSV)",type=['csv'],key='tlp_carton')
@@ -715,42 +871,16 @@ if True:
 
     if 'tlp_r' in st.session_state:
         r2=st.session_state['tlp_r']
-        tot2=int(r2['Quantity'].sum());fg2=int(r2[r2['Clasificacion']!='Wip']['Quantity'].sum())
-        wip2=int(r2[r2['Clasificacion']=='Wip']['Quantity'].sum())
-        cols=st.columns(4)
-        for col_w,(lbl,val,sub) in zip(cols,[
-            ("Total Unidades",f"{tot2:,}",f"{len(r2):,} cajas"),
-            ("Finished Goods",f"{fg2:,}",f"{fg2/tot2*100:.1f}%"),
-            ("Wip",f"{wip2:,}",f"{wip2/tot2*100:.1f}%"),
-            ("Tipos",f"{r2['Clasificacion'].nunique()}","clasificaciones"),
-        ]):
-            with col_w:st.markdown(f'<div class="metric-card"><div class="metric-label">{lbl}</div><div class="metric-value">{val}</div><div class="metric-sub">{sub}</div></div>',unsafe_allow_html=True)
-        st.markdown("<br>",unsafe_allow_html=True)
-        cl,cr=st.columns(2)
-        with cl:
-            st.markdown("#### Por clasificación")
-            cs2=r2.groupby('Clasificacion')['Quantity'].sum().sort_values(ascending=False).reset_index()
-            cs2.columns=['Clasificación','Unidades'];cs2['Unidades']=cs2['Unidades'].astype(int)
-            st.bar_chart(cs2.set_index('Clasificación'),color='#1B6CA8')
-        with cr:
-            st.markdown("#### Por cliente")
-            cc2=r2.groupby('Customer Name')['Quantity'].sum().sort_values(ascending=False).reset_index()
-            cc2.columns=['Cliente','Unidades'];cc2['Unidades']=cc2['Unidades'].astype(int)
-            st.bar_chart(cc2.set_index('Cliente'),color='#2E6DA4')
-        st.markdown("#### Resumen")
-        sm2=r2.groupby('Clasificacion').agg(Cajas=('Quantity','count'),Unidades=('Quantity','sum')).reset_index().sort_values('Unidades',ascending=False)
-        sm2['Unidades']=sm2['Unidades'].astype(int);sm2['%']=(sm2['Unidades']/sm2['Unidades'].sum()*100).round(1).astype(str)+'%'
-        st.dataframe(sm2,use_container_width=True,hide_index=True)
+        prev_df_tlp=st.session_state.get('tlp_prev_df')
+        render_dashboard(r2,'tlp',week_label,prev_df_tlp,is_tlp=True)
 
         wk_prev2=None
-        if st.session_state.get('tlp_prev_df') is not None:
-            pdf2=st.session_state['tlp_prev_df']
-            if 'Clasificacion' in pdf2.columns and 'Customer Name' in pdf2.columns:
-                pdf2['Quantity']=pd.to_numeric(pdf2['Quantity'].astype(str).str.replace(',',''),errors='coerce').fillna(0)
-                inv_comp=['TLP Irregulars','TLP Printed Excess','TLP sin clasificacion','TLP Blanks Excess']
-                pp2=pdf2.pivot_table(index='Customer Name',columns='Clasificacion',values='Quantity',aggfunc='sum',fill_value=0)
-                all_tlp=list(set(TLP_ORDER+list(pp2.index)))
-                wk_prev2={cli:{t:int(pp2.loc[cli,t]) if cli in pp2.index and t in pp2.columns else 0 for t in inv_comp} for cli in all_tlp}
+        if prev_df_tlp is not None and 'Clasificacion' in prev_df_tlp.columns and 'Customer Name' in prev_df_tlp.columns:
+            prev_df_tlp['Quantity']=pd.to_numeric(prev_df_tlp['Quantity'].astype(str).str.replace(',',''),errors='coerce').fillna(0)
+            inv_comp=['TLP Irregulars','TLP Printed Excess','TLP sin clasificacion','TLP Blanks Excess']
+            pp2=prev_df_tlp.pivot_table(index='Customer Name',columns='Clasificacion',values='Quantity',aggfunc='sum',fill_value=0)
+            all_tlp=list(set(TLP_ORDER+list(pp2.index)))
+            wk_prev2={cli:{t:int(pp2.loc[cli,t]) if cli in pp2.index and t in pp2.columns else 0 for t in inv_comp} for cli in all_tlp}
 
         st.markdown("#### Descargar")
         with st.spinner("Generando Excel..."):
