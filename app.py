@@ -603,19 +603,7 @@ with st.sidebar:
     st.markdown("---")
     week_label=st.text_input("Semana actual",value="WK13",label_visibility="collapsed")
     st.markdown(f"**Semana: {week_label}**")
-    st.markdown("---")
-    st.markdown("**Reglas Honduras:**")
-    rules_hn=["Excluir Cut","Picked incluido","Is Second/Third → Irregulares","Locker Stock → VMI",
-              "Sin VMI: Duluth, Tiltworks, Vortex","PO Open Order → Regular","Box Tag → Exceso/Obsoleto",
-              "Create Date → Obsoleto/Exceso","FG vs Wip por Box Status"]
-    for i,r in enumerate(rules_hn,1):
-        st.markdown(f"<div style='font-size:.78rem;padding:2px 0;color:#a8c4e0;'><b style='color:#1B6CA8;'>{i}.</b> {r}</div>",unsafe_allow_html=True)
-    st.markdown("---")
-    st.markdown("**Reglas TLP:**")
-    rules_tlp=["Is Second/Third → TLP Irregulars","Blanks Excess → TLP Blanks Excess",
-               "Printed Excess → TLP Printed Excess","Packed/Picked → TLP sin clasificacion","Resto → Wip"]
-    for i,r in enumerate(rules_tlp,1):
-        st.markdown(f"<div style='font-size:.78rem;padding:2px 0;color:#a8c4e0;'><b style='color:#1B6CA8;'>{i}.</b> {r}</div>",unsafe_allow_html=True)
+
 
 
 
@@ -706,9 +694,7 @@ font-family:var(--font-mono);">{value}</div>
 # ── Sidebar ──
 with st.sidebar:
     st.markdown("## Inventory Hub")
-    st.markdown("---")
     week_label = st.text_input("Semana", value="WK13", key="week_input")
-    st.markdown(f"**Semana activa: {week_label}**")
     st.markdown("---")
     st.markdown("**Archivos Honduras**")
     carton_file   = st.file_uploader("Carton Report HN (CSV)", type=['csv'], key='hn_carton')
