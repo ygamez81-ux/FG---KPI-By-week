@@ -785,24 +785,7 @@ def render_dashboard(r, key_prefix, week_label, prev_df=None, is_tlp=False):
 # ══════════════════════════════════════════
 # UI
 # ══════════════════════════════════════════
-with st.sidebar:
-    st.markdown("## 📦 Inventory Hub")
-    st.markdown("---")
-    week_label=st.text_input("Semana actual",value="WK13",label_visibility="collapsed")
-    st.markdown(f"**Semana: {week_label}**")
-    st.markdown("---")
-    st.markdown("**Reglas Honduras:**")
-    rules_hn=["Excluir Cut","Picked incluido","Is Second/Third → Irregulares","Locker Stock → VMI",
-              "Sin VMI: Duluth, Tiltworks, Vortex","PO Open Order → Regular","Box Tag → Exceso/Obsoleto",
-              "Create Date → Obsoleto/Exceso","FG vs Wip por Box Status"]
-    for i,r_item in enumerate(rules_hn,1):
-        st.markdown(f"<div style='font-size:.78rem;padding:2px 0;color:#a8c4e0;'><b style='color:#4CAF50;'>{i}.</b> {r_item}</div>",unsafe_allow_html=True)
-    st.markdown("---")
-    st.markdown("**Reglas TLP:**")
-    rules_tlp=["Is Second/Third → TLP Irregulars","Blanks Excess → TLP Blanks Excess",
-               "Printed Excess → TLP Printed Excess","Packed/Picked → TLP sin clasificacion","Resto → Wip"]
-    for i,r_item in enumerate(rules_tlp,1):
-        st.markdown(f"<div style='font-size:.78rem;padding:2px 0;color:#a8c4e0;'><b style='color:#4CAF50;'>{i}.</b> {r_item}</div>",unsafe_allow_html=True)
+
 
 # ── Honduras ──
 if True:
