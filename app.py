@@ -751,7 +751,7 @@ with tab_dash:
             tot_hn = int(r_hn['Quantity'].sum())
             fg_hn  = int(r_hn[r_hn['Type']=='Finished Goods']['Quantity'].sum())
             wip_hn = int(r_hn[r_hn['Type']=='Wip']['Quantity'].sum())
-            prev_tot_hn = int(pd.to_numeric(prev_hn['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0).sum()) if prev_hn is not None else None
+            prev_tot_hn = int(pd.to_numeric(prev_hn['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0).sum()) if prev_hn is not None and 'Quantity' in prev_hn.columns else None
             diff_hn = f"+{tot_hn-prev_tot_hn:,} vs WK ant." if prev_tot_hn else "Sin comparativo"
             c1,c2,c3,c4,c5 = st.columns(5)
             with c1: st.markdown(kpi_card("Total", f"{tot_hn:,}", diff_hn), unsafe_allow_html=True)
@@ -782,7 +782,7 @@ with tab_dash:
             tot_tlp = int(r_tlp['Quantity'].sum())
             fg_tlp  = int(r_tlp[r_tlp['Clasificacion']!='Wip']['Quantity'].sum())
             wip_tlp = int(r_tlp[r_tlp['Clasificacion']=='Wip']['Quantity'].sum())
-            prev_tot_tlp = int(pd.to_numeric(prev_tlp['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0).sum()) if prev_tlp is not None else None
+            prev_tot_tlp = int(pd.to_numeric(prev_tlp['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0).sum()) if prev_tlp is not None and 'Quantity' in prev_tlp.columns else None
             diff_tlp = f"+{tot_tlp-prev_tot_tlp:,} vs WK ant." if prev_tot_tlp else "Sin comparativo"
             c1,c2,c3,c4 = st.columns(4)
             with c1: st.markdown(kpi_card("Total", f"{tot_tlp:,}", diff_tlp,'#1a3a5c','#378ADD'), unsafe_allow_html=True)
