@@ -1434,7 +1434,7 @@ with tab_anal:
     else:
         anal_tab_hn, anal_tab_tlp = st.tabs(["Honduras","TLP"])
 
-        def render_analysis(bodega_key, r_cur, prev_df, clas_colors, line_color, label):
+        def render_analysis(bodega_key, r_cur, prev_df, prev_clas_dict, clas_colors, line_color, label):
             if r_cur is None:
                 st.info(f"Clasifica {label} primero.")
                 return
@@ -1575,15 +1575,14 @@ with tab_anal:
                         top_clas, clas_colors), unsafe_allow_html=True)
 
         with anal_tab_hn:
-            # Use prev_df if available, otherwise use hist data
             prev_hn_anal = st.session_state.get('hn_prev_df')
-            prev_hn_clas = st.session_state.get('hn_prev_clas')
+            prev_hn_clas = st.session_state.get('hn_prev_clas') or {}
             render_analysis('hn', r_hn, prev_hn_anal, prev_hn_clas,
                            CLAS_COLORS_HN, '#1B5E20', 'Honduras')
 
         with anal_tab_tlp:
             prev_tlp_anal = st.session_state.get('tlp_prev_df')
-            prev_tlp_clas = st.session_state.get('tlp_prev_clas')
+            prev_tlp_clas = st.session_state.get('tlp_prev_clas') or {}
             render_analysis('tlp', r_tlp, prev_tlp_anal, prev_tlp_clas,
                            CLAS_COLORS_TLP, '#0C447C', 'TLP')
 
