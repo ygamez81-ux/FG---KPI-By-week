@@ -624,6 +624,56 @@ with st.sidebar:
 import plotly.express as px
 import plotly.graph_objects as go
 
+import pandas as pd
+
+def parse_prev_hn(df_raw):
+    try:
+        clas_map = {'Regulars':'Regular','VMI':'VMI','excess':'Exceso',
+                    'Irregulars':'Irregulares','Obsolete':'Obsoleto','Liability':'Liability'}
+        result = {}
+        for i in range(38, min(52, len(df_raw))):
+            row = df_raw.iloc[i]
+            for col_idx in [1, 5, 7]:
+                if col_idx >= len(row): continue
+                clas_raw = str(row.iloc[col_idx]).strip() if pd.notna(row.iloc[col_idx]) else ''
+                if col_idx+1 >= len(row): continue
+                val_raw = str(row.iloc[col_idx+1]).strip() if pd.notna(row.iloc[col_idx+1]) else ''
+                if clas_raw in clas_map and val_raw not in ['nan','-','','NaN']:
+                    try:
+                        val = int(float(val_raw.replace(',','')))
+                        result[clas_map[clas_raw]] = result.get(clas_map[clas_raw], 0) + val
+                    except: pass
+        return result if result else None
+    except:
+        return None
+
+def parse_prev_tlp(df_raw):
+    try:
+        clas_map = {'TLP irregulars':'TLP Irregulars','TLP printed excess':'TLP Printed Excess',
+                    'TLP sin clasificacion':'TLP sin clasificacion','TLP Blanks excess':'TLP Blanks Excess'}
+        result = {}
+        headers = [str(h).strip() for h in df_raw.iloc[1].tolist()]
+        for i in range(2, len(df_raw)):
+            row = df_raw.iloc[i]
+            client = str(row.iloc[0]).strip()
+            if client in ['','nan','Grand Total','NaN']: continue
+            for j, h in enumerate(headers[1:], 1):
+                if h in clas_map and j < len(row):
+                    val_raw = str(row.iloc[j]).strip()
+                    if val_raw not in ['nan','-','','NaN']:
+                        try:
+                            val = int(float(val_raw.replace(',','')))
+                            result[clas_map[h]] = result.get(clas_map[h], 0) + val
+                        except: pass
+        return result if result else None
+    except:
+        return None
+
+def is_pivot_format(df):
+    cols = [str(c).lower() for c in df.columns.tolist()]
+    return 'clasificacion' not in cols and 'customer name' not in cols
+
+
 CLAS_COLORS_HN = {
     'Regular':'#2d5a3d','VMI':'#3B6D11','Irregulares':'#BA7517',
     'Exceso':'#993C1D','Obsoleto':'#A32D2D','Regular Wip':'#5F5E5A'
@@ -693,7 +743,9 @@ def build_alerts(df_cur, df_prev, clas_colors):
     cur_cli = df_cur.groupby('Customer Name')['Quantity'].sum()
 
     html_summary = ""
-    if df_prev is not None and 'Clasificacion' in df_prev.columns:
+    if df_prev is not None and ('Clasificacion' in df_prev.columns or is_pivot_format(df_prev)):
+        if is_pivot_format(df_prev):
+            return html_summary
         df_prev = df_prev.copy()
         df_prev['Quantity'] = pd.to_numeric(df_prev['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0)
         prev_cli = df_prev.groupby('Customer Name')['Quantity'].sum() if 'Customer Name' in df_prev.columns else pd.Series()
@@ -888,14 +940,36 @@ with st.sidebar:
                 r_hn, cut = classify_honduras(pd.read_csv(carton_file,low_memory=False), pd.read_csv(open_file,low_memory=False))
                 st.session_state['hn_r'] = r_hn; st.session_state['hn_cut'] = cut
         if prev_hn_file:
-            prev_hn_file.seek(0); st.session_state['hn_prev_df'] = pd.read_csv(prev_hn_file,low_memory=False)
-        else: st.session_state['hn_prev_df'] = None
+            prev_hn_file.seek(0)
+            raw = pd.read_csv(prev_hn_file, low_memory=False, header=None)
+            if is_pivot_format(raw):
+                parsed = parse_prev_hn(raw)
+                st.session_state['hn_prev_df'] = None
+                st.session_state['hn_prev_clas'] = parsed or {}
+            else:
+                prev_hn_file.seek(0)
+                st.session_state['hn_prev_df'] = pd.read_csv(prev_hn_file, low_memory=False)
+                st.session_state['hn_prev_clas'] = None
+        else:
+            st.session_state['hn_prev_df'] = None
+            st.session_state['hn_prev_clas'] = None
         if tlp_file:
             with st.spinner("Clasificando TLP..."):
                 tlp_file.seek(0); st.session_state['tlp_r'] = classify_tlp(pd.read_csv(tlp_file,low_memory=False))
         if prev_tlp_file:
-            prev_tlp_file.seek(0); st.session_state['tlp_prev_df'] = pd.read_csv(prev_tlp_file,low_memory=False)
-        else: st.session_state['tlp_prev_df'] = None
+            prev_tlp_file.seek(0)
+            raw2 = pd.read_csv(prev_tlp_file, low_memory=False, header=None)
+            if is_pivot_format(raw2):
+                parsed2 = parse_prev_tlp(raw2)
+                st.session_state['tlp_prev_df'] = None
+                st.session_state['tlp_prev_clas'] = parsed2 or {}
+            else:
+                prev_tlp_file.seek(0)
+                st.session_state['tlp_prev_df'] = pd.read_csv(prev_tlp_file, low_memory=False)
+                st.session_state['tlp_prev_clas'] = None
+        else:
+            st.session_state['tlp_prev_df'] = None
+            st.session_state['tlp_prev_clas'] = None
         st.success("Listo!")
 
 # ── Tabs ──
@@ -1007,13 +1081,18 @@ with tab_comp:
             st.session_state[hist_key][week_lbl] = cur_clas
 
         # Add prev week if loaded
-        if prev_df is not None and 'Clasificacion' in prev_df.columns:
-            prev_df2 = prev_df.copy()
-            prev_df2['Quantity'] = pd.to_numeric(prev_df2['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0)
-            df_p = filter_df(prev_df2, vmap3[view_c], fg_clas, wip_clas)
-            prev_clas = df_p.groupby('Clasificacion')['Quantity'].sum().to_dict() if 'Clasificacion' in df_p.columns else {}
-            prev_wk = f"WK{int(week_lbl.replace('WK',''))-1}" if 'WK' in week_lbl else "WK Ant."
+        prev_clas_direct = st.session_state.get(f'{bodega_key}_prev_clas')
+        if prev_clas_direct is not None:
+            prev_wk = f"WK{int(week_lbl.replace('WK',''))-1}" if 'WK' in week_lbl and week_lbl[2:].isdigit() else "WK Ant."
             if prev_wk not in st.session_state[hist_key]:
+                st.session_state[hist_key][prev_wk] = prev_clas_direct
+        elif prev_df is not None and 'Clasificacion' in prev_df.columns:
+            prev_wk = f"WK{int(week_lbl.replace('WK',''))-1}" if 'WK' in week_lbl and week_lbl[2:].isdigit() else "WK Ant."
+            if prev_wk not in st.session_state[hist_key]:
+                prev_df2 = prev_df.copy()
+                prev_df2['Quantity'] = pd.to_numeric(prev_df2['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0)
+                df_p = filter_df(prev_df2, vmap3[view_c], fg_clas, wip_clas)
+                prev_clas = df_p.groupby('Clasificacion')['Quantity'].sum().to_dict() if 'Clasificacion' in df_p.columns else {}
                 st.session_state[hist_key][prev_wk] = prev_clas
 
         hist = st.session_state[hist_key]
