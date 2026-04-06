@@ -867,25 +867,54 @@ def render_client_table(df, all_clas, color_map, theme_color, theme_header_bg):
     df = df.copy()
     df['Quantity'] = pd.to_numeric(df['Quantity'], errors='coerce').fillna(0)
     pivot = df.pivot_table(index='Customer Name', columns='Clasificacion', values='Quantity', aggfunc='sum', fill_value=0)
+    cajas = df.groupby('Customer Name').size()
     for c in all_clas:
         if c not in pivot.columns: pivot[c] = 0
-    pivot['Total Uds'] = pivot[all_clas].sum(axis=1)
-    pivot['Cajas'] = df.groupby('Customer Name').size()
-    pivot = pivot.sort_values('Total Uds', ascending=False)
-    total_uds = int(pivot['Total Uds'].sum())
+    pivot['_total'] = pivot[all_clas].sum(axis=1)
+    pivot = pivot.sort_values('_total', ascending=False)
+    total_uds = int(pivot['_total'].sum())
 
-    rows = []
-    for cli, row in pivot.iterrows():
-        pct = row['Total Uds']/total_uds*100 if total_uds else 0
-        r = {'Código': cli, 'Cajas': int(row['Cajas']), 'Total Uds': int(row['Total Uds']),
-             '% Total': f"{pct:.1f}%"}
+    th = f"padding:9px 10px;text-align:right;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:{theme_color};background:{theme_header_bg};"
+    th_l = th.replace("text-align:right","text-align:left")
+    td_s = "border-bottom:0.5px solid var(--color-border-tertiary);padding:8px 10px;font-size:12px;"
+
+    headers = f'<th style="{th_l}">Código</th><th style="{th}">Cajas</th><th style="{th}">Total Uds</th><th style="{th}">% Total</th>'
+    for c in all_clas:
+        dot = color_map.get(c,'#888')
+        cname = c.replace('TLP ','')
+        headers += f'<th style="{th}"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{dot};margin-right:4px;vertical-align:middle;"></span>{cname}</th>'
+
+    rows_html = ""
+    for i,(cli,row) in enumerate(pivot.iterrows()):
+        bg = "background:var(--color-background-secondary);" if i%2==0 else "background:var(--color-background-primary);"
+        pct = row['_total']/total_uds*100 if total_uds else 0
+        rows_html += f'<tr style="{bg}">'
+        rows_html += f'<td style="{td_s}text-align:left;font-weight:600;">{cli}</td>'
+        rows_html += f'<td style="{td_s}text-align:right;">{int(cajas.get(cli,0)):,}</td>'
+        rows_html += f'<td style="{td_s}text-align:right;font-weight:600;">{int(row["_total"]):,}</td>'
+        rows_html += f'<td style="{td_s}text-align:right;color:var(--color-text-secondary);">{pct:.1f}%</td>'
         for c in all_clas:
-            r[c] = int(row[c]) if row[c] != 0 else None
-        rows.append(r)
+            val = int(row.get(c,0))
+            rows_html += f'<td style="{td_s}text-align:right;">{val:,}</td>' if val else f'<td style="{td_s}text-align:right;color:var(--color-text-secondary);">—</td>'
+        rows_html += '</tr>'
 
-    result_df = pd.DataFrame(rows)
-    st.dataframe(result_df, use_container_width=True, hide_index=True,
-                 column_config={c: st.column_config.NumberColumn(c, format="%d") for c in all_clas + ['Cajas','Total Uds']})
+    tot_td = f"padding:9px 10px;font-size:12px;font-weight:600;color:{theme_color};background:{theme_header_bg};border-top:2px solid var(--color-border-secondary);"
+    rows_html += f'<tr><td style="{tot_td}text-align:left;">Total</td>'
+    rows_html += f'<td style="{tot_td}text-align:right;">{int(cajas.sum()):,}</td>'
+    rows_html += f'<td style="{tot_td}text-align:right;">{total_uds:,}</td>'
+    rows_html += f'<td style="{tot_td}text-align:right;">100%</td>'
+    for c in all_clas:
+        t = int(pivot[c].sum())
+        rows_html += f'<td style="{tot_td}text-align:right;">{t:,}</td>' if t else f'<td style="{tot_td}text-align:right;">—</td>'
+    rows_html += '</tr>'
+
+    st.markdown(
+        f'<div style="overflow-x:auto;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);">'
+        f'<table style="width:100%;border-collapse:collapse;font-family:var(--font-sans);white-space:nowrap;">'
+        f'<thead><tr>{headers}</tr></thead><tbody>{rows_html}</tbody></table></div>',
+        unsafe_allow_html=True
+    )
+
 
 def render_line_chart(weeks_data, weeks_labels, color, bodega):
     totals = [sum(d.values()) for d in weeks_data]
@@ -935,13 +964,31 @@ with st.sidebar:
     week_label = st.text_input("Semana", value="WK13", key="week_input")
     st.markdown(f"**Semana: {week_label}**")
     st.markdown("---")
-    st.markdown("**Archivos Honduras**")
-    carton_file   = st.file_uploader("Carton Report HN (CSV)", type=['csv'], key='hn_carton')
-    open_file     = st.file_uploader("Open Order (CSV)", type=['csv'], key='hn_open')
-    prev_hn_file  = st.file_uploader("HN semana anterior (CSV)", type=['csv'], key='hn_prev')
-    st.markdown("**Archivos TLP**")
-    tlp_file      = st.file_uploader("Carton Report TLP (CSV)", type=['csv'], key='tlp_carton')
-    prev_tlp_file = st.file_uploader("TLP semana anterior (CSV)", type=['csv'], key='tlp_prev')
+    st.markdown("**Sube todos los archivos aquí**")
+    st.caption("CartonReport → HN | Carton_Report_TLP → TLP | Open_order → Open Order | data_honduras → HN anterior | data_TLP → TLP anterior")
+    all_files = st.file_uploader("Selecciona todos los archivos CSV", type=['csv'],
+                                  accept_multiple_files=True, key='all_files')
+    # Auto-detect files by name
+    carton_file = open_file = prev_hn_file = tlp_file = prev_tlp_file = None
+    for f in (all_files or []):
+        n = f.name.lower()
+        if 'carton' in n and 'tlp' in n:      tlp_file = f
+        elif 'carton' in n:                    carton_file = f
+        elif 'open' in n and 'order' in n:     open_file = f
+        elif 'open_order' in n:                open_file = f
+        elif ('data_hn' in n or 'data_honduras' in n or 'inventario_hn' in n):  prev_hn_file = f
+        elif ('data_tlp' in n or 'inventario_tlp' in n):                         prev_tlp_file = f
+    # Show detected files
+    if all_files:
+        st.markdown("**Archivos detectados:**")
+        def check(f, label):
+            if f: st.markdown(f"<div style='font-size:11px;color:#4CAF50;'>✓ {label}: {f.name}</div>", unsafe_allow_html=True)
+            else: st.markdown(f"<div style='font-size:11px;color:#9CA3AF;'>— {label}: no detectado</div>", unsafe_allow_html=True)
+        check(carton_file, "Carton HN")
+        check(open_file,   "Open Order")
+        check(tlp_file,    "Carton TLP")
+        check(prev_hn_file,"HN anterior")
+        check(prev_tlp_file,"TLP anterior")
     st.markdown("---")
     if st.button("Clasificar ambas bodegas", type="primary", use_container_width=True):
         if carton_file and open_file:
@@ -1069,10 +1116,56 @@ with tab_tlp:
 # ══ TAB COMPARATIVO ══
 with tab_comp:
     st.markdown("### Comparativo histórico")
+    st.caption("Sube archivos de semanas anteriores para acumular el historial. Soporta WK1 a WK52.")
+
+    # Multi-file uploader for historical weeks
+    hist_files = st.file_uploader(
+        "Sube archivos de semanas anteriores (CSV data completa o resumen pivot)",
+        type=['csv'], accept_multiple_files=True, key='hist_files'
+    )
+
+    # Process historical files and add to session state
+    if hist_files:
+        for hf in hist_files:
+            hname = hf.name.lower()
+            # Detect week label from filename e.g. WK12, wk12, semana12
+            import re
+            wk_match = re.search(r'wk(\d+)', hname) or re.search(r'semana(\d+)', hname) or re.search(r'(\d+)', hname)
+            wk_lbl = f"WK{wk_match.group(1)}" if wk_match else hf.name[:10]
+
+            hf.seek(0)
+            raw = pd.read_csv(hf, low_memory=False, header=None)
+
+            # Detect bodega and format
+            is_hn  = 'tlp' not in hname
+            is_tlp = 'tlp' in hname
+
+            if is_pivot_format(raw):
+                if is_hn:
+                    parsed = parse_prev_hn(raw)
+                    if parsed:
+                        hist_key = 'hist_hn'
+                        if hist_key not in st.session_state: st.session_state[hist_key] = {}
+                        st.session_state[hist_key][wk_lbl] = parsed
+                else:
+                    parsed = parse_prev_tlp(raw)
+                    if parsed:
+                        hist_key = 'hist_tlp'
+                        if hist_key not in st.session_state: st.session_state[hist_key] = {}
+                        st.session_state[hist_key][wk_lbl] = parsed
+            else:
+                hf.seek(0)
+                df_hist = pd.read_csv(hf, low_memory=False)
+                if 'Clasificacion' in df_hist.columns and 'Quantity' in df_hist.columns:
+                    df_hist['Quantity'] = pd.to_numeric(df_hist['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0)
+                    clas_totals = df_hist.groupby('Clasificacion')['Quantity'].sum().to_dict()
+                    hist_key = 'hist_tlp' if is_tlp else 'hist_hn'
+                    if hist_key not in st.session_state: st.session_state[hist_key] = {}
+                    st.session_state[hist_key][wk_lbl] = clas_totals
 
     comp_tab_hn, comp_tab_tlp = st.tabs(["Honduras","TLP"])
 
-    def render_comp(bodega_key, r_cur, prev_df, fg_clas, wip_clas, clas_colors, line_color, week_lbl):
+    def render_comp(bodega_key, r_cur, fg_clas, wip_clas, clas_colors, line_color, week_lbl):
         view_c = st.radio("Ver:", ["Total","Finished Goods","Wip"], horizontal=True,
                           key=f"comp_{bodega_key}_view", label_visibility="visible")
         vmap3 = {"Total":"all","Finished Goods":"fg","Wip":"wip"}
@@ -1082,99 +1175,108 @@ with tab_comp:
         if hist_key not in st.session_state:
             st.session_state[hist_key] = {}
 
-        # Add current week
+        # Add current week from classified data
         if r_cur is not None:
             df_c = filter_df(r_cur, vmap3[view_c], fg_clas, wip_clas).copy()
             df_c['Quantity'] = pd.to_numeric(df_c['Quantity'], errors='coerce').fillna(0)
             cur_clas = df_c.groupby('Clasificacion')['Quantity'].sum().to_dict()
             st.session_state[hist_key][week_lbl] = cur_clas
 
-        # Add prev week if loaded
+        # Add prev week from parsed pivot if available
         prev_clas_direct = st.session_state.get(f'{bodega_key}_prev_clas')
-        if prev_clas_direct is not None:
+        if prev_clas_direct:
             prev_wk = f"WK{int(week_lbl.replace('WK',''))-1}" if 'WK' in week_lbl and week_lbl[2:].isdigit() else "WK Ant."
             if prev_wk not in st.session_state[hist_key]:
                 st.session_state[hist_key][prev_wk] = prev_clas_direct
-        elif prev_df is not None and 'Clasificacion' in prev_df.columns:
-            prev_wk = f"WK{int(week_lbl.replace('WK',''))-1}" if 'WK' in week_lbl and week_lbl[2:].isdigit() else "WK Ant."
-            if prev_wk not in st.session_state[hist_key]:
-                prev_df2 = prev_df.copy()
-                prev_df2['Quantity'] = pd.to_numeric(prev_df2['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0)
-                df_p = filter_df(prev_df2, vmap3[view_c], fg_clas, wip_clas)
-                prev_clas = df_p.groupby('Clasificacion')['Quantity'].sum().to_dict() if 'Clasificacion' in df_p.columns else {}
-                st.session_state[hist_key][prev_wk] = prev_clas
 
         hist = st.session_state[hist_key]
-        weeks_labels = sorted(hist.keys(), key=lambda x: int(x.replace('WK','')) if x.startswith('WK') and x[2:].isdigit() else 0)
+
+        # Sort weeks properly WK1..WK52
+        def wk_sort(w):
+            m = re.search(r'(\d+)', w)
+            return int(m.group(1)) if m else 999
+        weeks_labels = sorted(hist.keys(), key=wk_sort)
         weeks_data   = [hist[w] for w in weeks_labels]
         totals = [sum(d.values()) for d in weeks_data]
 
-        if len(weeks_labels) > 0:
-            # Badges
-            st.markdown(wk_badges_html(totals, weeks_labels, line_color), unsafe_allow_html=True)
+        if not weeks_labels:
+            st.info("Clasifica el inventario y sube archivos de semanas anteriores para ver el historial.")
+            return
+
+        # Badges
+        st.markdown(wk_badges_html(totals, weeks_labels, line_color), unsafe_allow_html=True)
+
+        if len(weeks_labels) > 1:
+            # KPIs
+            kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
+            diff = totals[-1]-totals[0]
+            dc = '#1B5E20' if diff>=0 else '#A32D2D'
+            with kpi_col1: st.markdown(kpi_card("Semana actual", f"{totals[-1]:,}", week_lbl, line_color, line_color), unsafe_allow_html=True)
+            with kpi_col2: st.markdown(kpi_card("Primera semana", f"{totals[0]:,}", weeks_labels[0], line_color, line_color), unsafe_allow_html=True)
+            with kpi_col3: st.markdown(kpi_card("Variación total", f"{'+' if diff>=0 else ''}{diff:,}", f"{weeks_labels[0]} → {weeks_labels[-1]}", dc, dc), unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
 
             # Line chart
-            if len(weeks_labels) > 1:
-                fig, _ = render_line_chart(weeks_data, weeks_labels, line_color, bodega_key)
-                kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
-                with kpi_col1: st.markdown(kpi_card("Semana actual", f"{totals[-1]:,}" if totals else "—", week_lbl, line_color, line_color), unsafe_allow_html=True)
-                with kpi_col2: st.markdown(kpi_card("Primera semana", f"{totals[0]:,}" if totals else "—", weeks_labels[0], line_color, line_color), unsafe_allow_html=True)
-                with kpi_col3:
-                    diff = totals[-1]-totals[0] if len(totals)>1 else 0
-                    dc = '#1B5E20' if diff>=0 else '#A32D2D'
-                    st.markdown(kpi_card("Variación total", f"{'+' if diff>=0 else ''}{diff:,}", f"{weeks_labels[0]} → {weeks_labels[-1]}", dc, dc), unsafe_allow_html=True)
-                st.markdown("<br>",unsafe_allow_html=True)
-                st.plotly_chart(fig, use_container_width=True)
+            fig, _ = render_line_chart(weeks_data, weeks_labels, line_color, bodega_key)
+            st.plotly_chart(fig, use_container_width=True)
 
-            # Table
-            st.markdown("#### Desglose por clasificación")
-            all_clas_c = sorted(set(k for d in weeks_data for k in d.keys()))
-            rows = []
-            for c in all_clas_c:
-                row = {'Clasificación': c}
-                for i,(w,d) in enumerate(zip(weeks_labels,weeks_data)):
-                    val = int(d.get(c,0))
-                    prev_val = int(weeks_data[i-1].get(c,0)) if i>0 else None
-                    if prev_val is not None and val != prev_val:
-                        arr = '▲' if val > prev_val else '▼'
-                        row[w] = f"{val:,} {arr}"
-                    else:
-                        row[w] = f"{val:,}" if val else "—"
-                diff_c = int(weeks_data[-1].get(c,0)) - int(weeks_data[0].get(c,0)) if len(weeks_data)>1 else 0
+        # Table
+        st.markdown("#### Desglose por clasificación")
+        all_clas_c = sorted(set(k for d in weeks_data for k in d.keys()))
+        rows = []
+        for c in all_clas_c:
+            row = {'Clasificación': c}
+            for i,(w,d) in enumerate(zip(weeks_labels,weeks_data)):
+                val = int(d.get(c,0))
+                prev_val = int(weeks_data[i-1].get(c,0)) if i>0 else None
+                if prev_val is not None and val != prev_val:
+                    arr = '▲' if val > prev_val else '▼'
+                    row[w] = f"{val:,} {arr}"
+                else:
+                    row[w] = f"{val:,}" if val else "—"
+            if len(weeks_data) > 1:
+                diff_c = int(weeks_data[-1].get(c,0)) - int(weeks_data[0].get(c,0))
                 row['Var. total'] = f"{'+' if diff_c>=0 else ''}{diff_c:,}"
-                rows.append(row)
+            rows.append(row)
 
-            if rows:
-                tot_row = {'Clasificación':'Total'}
-                for i,(w,d) in enumerate(zip(weeks_labels,weeks_data)):
-                    t = sum(d.values())
-                    tot_row[w] = f"{int(t):,}"
-                tot_diff = int(sum(weeks_data[-1].values())) - int(sum(weeks_data[0].values())) if len(weeks_data)>1 else 0
+        if rows:
+            tot_row = {'Clasificación': 'Total'}
+            for i,(w,d) in enumerate(zip(weeks_labels,weeks_data)):
+                tot_row[w] = f"{int(sum(d.values())):,}"
+            if len(weeks_data) > 1:
+                tot_diff = int(sum(weeks_data[-1].values())) - int(sum(weeks_data[0].values()))
                 tot_row['Var. total'] = f"{'+' if tot_diff>=0 else ''}{tot_diff:,}"
-                rows.append(tot_row)
-                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            rows.append(tot_row)
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
-            # Alerts
+        # Alerts
+        if len(weeks_labels) > 1:
             st.markdown("---")
             st.markdown("#### Alertas de atención")
-            if r_cur is not None and prev_df is not None:
-                build_alerts(r_cur, prev_df, clas_colors)
-            else:
-                st.info("Carga el inventario de la semana anterior para ver las alertas.")
-        else:
-            st.info("Clasifica el inventario para ver el comparativo.")
+            prev_df_alert = st.session_state.get(f'{bodega_key}_prev_df')
+            r_alert = r_cur
+            if r_alert is not None and prev_df_alert is not None:
+                build_alerts(r_alert, prev_df_alert, clas_colors)
+            elif len(weeks_data) > 1:
+                st.info("Sube el CSV de la semana anterior para ver las alertas por cliente.")
+
+        # Button to clear history
+        if st.button(f"Limpiar historial {bodega_key.upper()}", key=f"clear_{bodega_key}"):
+            st.session_state[hist_key] = {}
+            st.rerun()
 
     with comp_tab_hn:
         if r_hn is None:
             st.info("Clasifica Honduras primero.")
         else:
-            render_comp('hn', r_hn, prev_hn, HN_FG_CLAS, HN_WIP_CLAS, CLAS_COLORS_HN, '#1B5E20', week_label)
+            render_comp('hn', r_hn, HN_FG_CLAS, HN_WIP_CLAS, CLAS_COLORS_HN, '#1B5E20', week_label)
 
     with comp_tab_tlp:
         if r_tlp is None:
             st.info("Clasifica TLP primero.")
         else:
-            render_comp('tlp', r_tlp, prev_tlp, TLP_FG_CLAS, TLP_WIP_CLAS, CLAS_COLORS_TLP, '#0C447C', week_label)
+            render_comp('tlp', r_tlp, TLP_FG_CLAS, TLP_WIP_CLAS, CLAS_COLORS_TLP, '#0C447C', week_label)
+
 
 # ══ TAB DESCARGAS ══
 with tab_dl:
