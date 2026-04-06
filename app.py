@@ -884,7 +884,7 @@ def render_line_chart(weeks_data, weeks_labels, color, bodega):
         x=weeks_labels, y=totals, mode='lines+markers',
         line=dict(color=color, width=2.5),
         marker=dict(size=8, color=color),
-        fill='tozeroy', fillcolor=color+'18',
+        fill='tozeroy', fillcolor='rgba('+str(int(color[1:3],16))+','+str(int(color[3:5],16))+','+str(int(color[5:7],16))+',0.1)',
         hovertemplate='%{x}: %{y:,} uds<extra></extra>'
     ))
     fig.update_layout(
