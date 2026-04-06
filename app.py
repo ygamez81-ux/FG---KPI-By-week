@@ -683,15 +683,25 @@ CLAS_COLORS_TLP = {
     'TLP Printed Excess':'#791F1F','TLP sin clasificacion':'#185FA5','Wip':'#444441'
 }
 HN_FG_CLAS  = ['Regular','VMI','Irregulares','Exceso','Obsoleto']
-HN_WIP_CLAS = ['Regular Wip']
+HN_WIP_CLAS = ['Regular']
 TLP_FG_CLAS = ['TLP Irregulars','TLP Blanks Excess','TLP Printed Excess','TLP sin clasificacion']
 TLP_WIP_CLAS= ['Wip']
 
 def fmt(n): return f"{int(n):,}"
 
 def filter_df(df, view, fg_clas, wip_clas):
-    if view == 'fg':  return df[df['Clasificacion'].isin(fg_clas)]
-    if view == 'wip': return df[df['Clasificacion'].isin(wip_clas)]
+    if view == 'all':
+        if 'Type' in df.columns:
+            return df[df['Type'].isin(['Finished Goods','Wip'])]
+        return df[df['Clasificacion'].isin(fg_clas + wip_clas)]
+    if view == 'fg':
+        if 'Type' in df.columns:
+            return df[df['Type']=='Finished Goods']
+        return df[df['Clasificacion'].isin(fg_clas)]
+    if view == 'wip':
+        if 'Type' in df.columns:
+            return df[df['Type']=='Wip']
+        return df[df['Clasificacion'].isin(wip_clas)]
     return df
 
 def make_donut(data_series, color_map, title):
@@ -700,14 +710,14 @@ def make_donut(data_series, color_map, title):
     colors = [color_map.get(l,'#888780') for l in labels]
     fig = go.Figure(go.Pie(
         labels=labels, values=values, marker_colors=colors,
-        hole=0.52, textinfo='percent', textfont=dict(size=11),
+        hole=0.52, textinfo='percent', textfont=dict(size=13),
         hovertemplate='%{label}<br>%{value:,}<extra></extra>'
     ))
     fig.update_layout(
-        height=280, margin=dict(t=10,b=10,l=10,r=10),
+        height=380, margin=dict(t=20,b=20,l=20,r=20),
         paper_bgcolor='rgba(0,0,0,0)',
-        legend=dict(font=dict(size=10), orientation='v', x=1.02),
-        annotations=[dict(text=title, x=0.5, y=0.5, font=dict(size=11,color='#374151'),
+        legend=dict(font=dict(size=13), orientation='v', x=1.02),
+        annotations=[dict(text=title, x=0.5, y=0.5, font=dict(size=13,color='#374151'),
                          showarrow=False, xref='paper', yref='paper')]
     )
     return fig
@@ -718,12 +728,12 @@ def color_detail(data_series, color_map):
     for clas, val in data_series.items():
         color = color_map.get(clas, '#888780')
         pct = val/total*100 if total > 0 else 0
-        html += f"""<div style="display:flex;align-items:center;gap:10px;padding:6px 0;
+        html += f"""<div style="display:flex;align-items:center;gap:12px;padding:9px 0;
         border-bottom:0.5px solid var(--color-border-tertiary);">
-        <div style="width:11px;height:11px;border-radius:50%;background:{color};flex-shrink:0;"></div>
-        <div style="flex:1;font-size:13px;color:var(--color-text-primary);">{clas}</div>
-        <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);">{int(val):,}</div>
-        <div style="font-size:11px;color:var(--color-text-secondary);width:42px;text-align:right;">{pct:.1f}%</div>
+        <div style="width:14px;height:14px;border-radius:50%;background:{color};flex-shrink:0;"></div>
+        <div style="flex:1;font-size:15px;color:var(--color-text-primary);">{clas}</div>
+        <div style="font-size:15px;font-weight:600;color:var(--color-text-primary);">{int(val):,}</div>
+        <div style="font-size:13px;color:var(--color-text-secondary);width:48px;text-align:right;">{pct:.1f}%</div>
         </div>"""
     return html
 
@@ -992,7 +1002,6 @@ with tab_dash:
                 st.markdown("#### Honduras")
                 view_hn = st.radio("", ["Todo","Finished Goods","Wip"], horizontal=True, key="dash_hn_view", label_visibility="collapsed")
                 vmap = {"Todo":"all","Finished Goods":"fg","Wip":"wip"}
-                df_v = filter_df(r_hn, vmap[view_hn], HN_FG_CLAS+HN_WIP_CLAS if False else HN_FG_CLAS, HN_WIP_CLAS)
                 df_v = filter_df(r_hn, vmap[view_hn], HN_FG_CLAS, HN_WIP_CLAS)
                 cs = df_v.groupby('Clasificacion')['Quantity'].sum().sort_values(ascending=False)
                 st.plotly_chart(make_donut(cs, CLAS_COLORS_HN, ""), use_container_width=True)
