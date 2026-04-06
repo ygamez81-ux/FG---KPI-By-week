@@ -1010,7 +1010,8 @@ with st.sidebar:
                 st.session_state['hn_prev_df'] = None
                 st.session_state['hn_prev_clas'] = parsed or {}
                 if 'hist_hn' not in st.session_state: st.session_state['hist_hn'] = {}
-                prev_wk_h = f"WK{int(week_label.replace('WK',''))-1}" if week_label[2:].isdigit() else "WK Ant."
+                _wk_num = week_label.replace('WK','').replace('wk','').strip()
+                prev_wk_h = f"WK{int(_wk_num)-1}" if _wk_num.isdigit() else "WK Ant."
                 st.session_state['hist_hn'][prev_wk_h] = parsed or {}
             else:
                 prev_hn_file.seek(0)
@@ -1022,7 +1023,8 @@ with st.sidebar:
                     df_prev_h2['Quantity'] = pd.to_numeric(df_prev_h2['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0)
                     clas_h = df_prev_h2.groupby('Clasificacion')['Quantity'].sum().to_dict()
                     if 'hist_hn' not in st.session_state: st.session_state['hist_hn'] = {}
-                    prev_wk_h = f"WK{int(week_label.replace('WK',''))-1}" if week_label[2:].isdigit() else "WK Ant."
+                    _wk_num2 = week_label.replace('WK','').replace('wk','').strip()
+                    prev_wk_h = f"WK{int(_wk_num2)-1}" if _wk_num2.isdigit() else "WK Ant."
                     st.session_state['hist_hn'][prev_wk_h] = clas_h
         else:
             st.session_state['hn_prev_df'] = None
@@ -1039,7 +1041,8 @@ with st.sidebar:
                 st.session_state['tlp_prev_clas'] = parsed2 or {}
                 # Add to historical
                 if 'hist_tlp' not in st.session_state: st.session_state['hist_tlp'] = {}
-                prev_wk_t = f"WK{int(week_label.replace('WK',''))-1}" if week_label[2:].isdigit() else "WK Ant."
+                _wk_num_t = week_label.replace('WK','').replace('wk','').strip()
+                prev_wk_t = f"WK{int(_wk_num_t)-1}" if _wk_num_t.isdigit() else "WK Ant."
                 st.session_state['hist_tlp'][prev_wk_t] = parsed2 or {}
             else:
                 prev_tlp_file.seek(0)
@@ -1051,7 +1054,8 @@ with st.sidebar:
                     df_prev_t2['Quantity'] = pd.to_numeric(df_prev_t2['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0)
                     clas_t = df_prev_t2.groupby('Clasificacion')['Quantity'].sum().to_dict()
                     if 'hist_tlp' not in st.session_state: st.session_state['hist_tlp'] = {}
-                    prev_wk_t = f"WK{int(week_label.replace('WK',''))-1}" if week_label[2:].isdigit() else "WK Ant."
+                    _wk_num_t2 = week_label.replace('WK','').replace('wk','').strip()
+                    prev_wk_t = f"WK{int(_wk_num_t2)-1}" if _wk_num_t2.isdigit() else "WK Ant."
                     st.session_state['hist_tlp'][prev_wk_t] = clas_t
         else:
             st.session_state['tlp_prev_df'] = None
@@ -1072,14 +1076,39 @@ with tab_dash:
     if r_hn is None and r_tlp is None:
         st.info("Carga los archivos en el panel izquierdo y presiona Clasificar.")
     else:
+        vmap = {"Todo":"all","Finished Goods":"fg","Wip":"wip"}
+
+        # Global filter
+        view_dash = st.radio("", ["Todo","Finished Goods","Wip"], horizontal=True,
+                             key="dash_global_view", label_visibility="collapsed")
+
+        # KPI row - totals for both warehouses
+        df_vhn  = filter_df(r_hn,  vmap[view_dash], HN_FG_CLAS,  HN_WIP_CLAS)  if r_hn  is not None else pd.DataFrame()
+        df_vtlp = filter_df(r_tlp, vmap[view_dash], TLP_FG_CLAS, TLP_WIP_CLAS) if r_tlp is not None else pd.DataFrame()
+        df_vhn['Quantity']  = pd.to_numeric(df_vhn['Quantity'],  errors='coerce').fillna(0) if not df_vhn.empty  else 0
+        df_vtlp['Quantity'] = pd.to_numeric(df_vtlp['Quantity'], errors='coerce').fillna(0) if not df_vtlp.empty else 0
+
+        tot_hn  = int(df_vhn['Quantity'].sum())  if not df_vhn.empty  else 0
+        tot_tlp = int(df_vtlp['Quantity'].sum()) if not df_vtlp.empty else 0
+        tot_all = tot_hn + tot_tlp
+        caj_hn  = len(df_vhn)  if not df_vhn.empty  else 0
+        caj_tlp = len(df_vtlp) if not df_vtlp.empty else 0
+
+        k1,k2,k3,k4,k5 = st.columns(5)
+        with k1: st.markdown(kpi_card("Total Ambas", f"{tot_all:,}", f"{caj_hn+caj_tlp:,} cajas",'#374151','#6B7280'), unsafe_allow_html=True)
+        with k2: st.markdown(kpi_card("Honduras — Uds", f"{tot_hn:,}", f"{caj_hn:,} cajas",'#1B5E20','#4CAF50'), unsafe_allow_html=True)
+        with k3: st.markdown(kpi_card("Honduras — %", f"{tot_hn/tot_all*100:.1f}%" if tot_all else "—", "del total",'#2E7D32','#4CAF50'), unsafe_allow_html=True)
+        with k4: st.markdown(kpi_card("TLP — Uds", f"{tot_tlp:,}", f"{caj_tlp:,} cajas",'#0C447C','#378ADD'), unsafe_allow_html=True)
+        with k5: st.markdown(kpi_card("TLP — %", f"{tot_tlp/tot_all*100:.1f}%" if tot_all else "—", "del total",'#185FA5','#378ADD'), unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Donuts side by side
         col_hn, col_tlp = st.columns(2)
         with col_hn:
             if r_hn is not None:
                 st.markdown("#### Honduras")
-                view_hn = st.radio("", ["Todo","Finished Goods","Wip"], horizontal=True, key="dash_hn_view", label_visibility="collapsed")
-                vmap = {"Todo":"all","Finished Goods":"fg","Wip":"wip"}
-                df_v = filter_df(r_hn, vmap[view_hn], HN_FG_CLAS, HN_WIP_CLAS)
-                cs = df_v.groupby('Clasificacion')['Quantity'].sum().sort_values(ascending=False)
+                cs = df_vhn.groupby('Clasificacion')['Quantity'].sum().sort_values(ascending=False)
                 st.plotly_chart(make_donut(cs, CLAS_COLORS_HN, ""), use_container_width=True)
                 st.markdown(color_detail(cs, CLAS_COLORS_HN), unsafe_allow_html=True)
             else:
@@ -1087,9 +1116,7 @@ with tab_dash:
         with col_tlp:
             if r_tlp is not None:
                 st.markdown("#### TLP")
-                view_tlp = st.radio("", ["Todo","Finished Goods","Wip"], horizontal=True, key="dash_tlp_view", label_visibility="collapsed")
-                df_v2 = filter_df(r_tlp, vmap[view_tlp], TLP_FG_CLAS, TLP_WIP_CLAS)
-                cs2 = df_v2.groupby('Clasificacion')['Quantity'].sum().sort_values(ascending=False)
+                cs2 = df_vtlp.groupby('Clasificacion')['Quantity'].sum().sort_values(ascending=False)
                 st.plotly_chart(make_donut(cs2, CLAS_COLORS_TLP, ""), use_container_width=True)
                 st.markdown(color_detail(cs2, CLAS_COLORS_TLP), unsafe_allow_html=True)
             else:
@@ -1548,11 +1575,16 @@ with tab_anal:
                         top_clas, clas_colors), unsafe_allow_html=True)
 
         with anal_tab_hn:
-            render_analysis('hn', r_hn, st.session_state.get('hn_prev_df'),
+            # Use prev_df if available, otherwise use hist data
+            prev_hn_anal = st.session_state.get('hn_prev_df')
+            prev_hn_clas = st.session_state.get('hn_prev_clas')
+            render_analysis('hn', r_hn, prev_hn_anal, prev_hn_clas,
                            CLAS_COLORS_HN, '#1B5E20', 'Honduras')
 
         with anal_tab_tlp:
-            render_analysis('tlp', r_tlp, st.session_state.get('tlp_prev_df'),
+            prev_tlp_anal = st.session_state.get('tlp_prev_df')
+            prev_tlp_clas = st.session_state.get('tlp_prev_clas')
+            render_analysis('tlp', r_tlp, prev_tlp_anal, prev_tlp_clas,
                            CLAS_COLORS_TLP, '#0C447C', 'TLP')
 
 # ══ TAB DESCARGAS ══
