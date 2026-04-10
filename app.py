@@ -53,7 +53,7 @@ def xh(ws,r,c,v,bg=NAVY,fg=WHITE,sz=10,b=True,ha='center'):
 
 def xd(ws,r,c,v,bg=None,b=False,ha='right'):
     cell=ws.cell(row=r,column=c,value=v)
-    cell.font=Font(bold=b,color='1A1A2E',name='Calibri',size=10)
+    cell.font=Font(bold=b,color='FF1A1A2E',name='Calibri',size=10)
     if bg:cell.fill=PatternFill('solid',start_color=bg)
     cell.alignment=Alignment(horizontal=ha,vertical='center')
     cell.border=brd()
