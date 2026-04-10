@@ -714,12 +714,16 @@ TLP_WIP_CLAS= ['Wip']
 
 def filter_df(df, view, fg_clas, wip_clas):
     if view == 'fg':
-        if 'Type' in df.columns: return df[df['Type']=='Finished Goods']
+        if 'Type' in df.columns and df['Type'].notna().any():
+            return df[df['Type']=='Finished Goods']
         return df[df['Clasificacion'].isin(fg_clas)]
     if view == 'wip':
-        if 'Type' in df.columns: return df[df['Type']=='Wip']
+        if 'Type' in df.columns and df['Type'].notna().any():
+            return df[df['Type']=='Wip']
         return df[df['Clasificacion'].isin(wip_clas)]
-    return df
+    if 'Type' in df.columns and df['Type'].notna().any():
+        return df[df['Type'].isin(['Finished Goods','Wip'])]
+    return df[df['Clasificacion'].isin(fg_clas + wip_clas)]
 
 def fmt(n):
     n = int(n)
