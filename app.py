@@ -639,7 +639,8 @@ import pandas as pd
 def parse_prev_hn(df_raw):
     try:
         clas_map = {'Regulars':'Regular','VMI':'VMI','excess':'Exceso',
-                    'Irregulars':'Irregulares','Obsolete':'Obsoleto','Liability':'Liability'}
+                    'Irregulars':'Irregulares','Obsolete':'Obsoleto','Liability':'Liability',
+                    'Regular Wip':'Wip'}
         result = {}
         for i in range(38, min(52, len(df_raw))):
             row = df_raw.iloc[i]
@@ -659,8 +660,8 @@ def parse_prev_hn(df_raw):
 
 def parse_prev_tlp(df_raw):
     try:
-        clas_map = {'TLP irregulars':'TLP Irregulars','TLP printed excess':'TLP Printed Excess',
-                    'TLP sin clasificacion':'TLP sin clasificacion','TLP Blanks excess':'TLP Blanks Excess'}
+        clas_map = {'TLP irregulars':'Irregulares','TLP printed excess':'Exceso Printed',
+                    'TLP sin clasificacion':'Sin Clasificacion','TLP Blanks excess':'Exceso Blanks'}
         result = {}
         headers = [str(h).strip() for h in df_raw.iloc[1].tolist()]
         for i in range(2, len(df_raw)):
@@ -848,7 +849,7 @@ def render_age_bars(df):
 <div style="flex:1;background:#EEF2F7;border-radius:2px;height:7px;">
   <div style="width:{bar_w}%;height:7px;border-radius:2px;background:{color};"></div>
 </div>
-<div style="font-size:11px;font-weight:500;color:#162447;min-width:42px;text-align:right;font-family:var(--font-mono);">{fmtk(val)}</div></div>"""
+<div style="font-size:11px;font-weight:500;color:#162447;min-width:60px;text-align:right;font-family:var(--font-mono);">{int(val):,}</div></div>"""
     st.markdown(html, unsafe_allow_html=True)
 
 def render_donut_plotly(data_series, color_map, height=420):
@@ -1351,11 +1352,11 @@ with tab_comp:
 
     with comp_hn:
         if r_hn is None: st.info("Clasifica Honduras primero.")
-        else: render_comp_4wk('hn', r_hn, hist_hn, CLAS_COLORS_HN, INDIGO, 'Honduras', week_label)
+        else: render_comp_4wk('hn', r_hn, st.session_state.get('hist_hn',{}), CLAS_COLORS_HN, INDIGO, 'Honduras', week_label)
 
     with comp_tlp:
         if r_tlp is None: st.info("Clasifica TLP primero.")
-        else: render_comp_4wk('tlp', r_tlp, hist_tlp, CLAS_COLORS_TLP, SLATE, 'TLP', week_label)
+        else: render_comp_4wk('tlp', r_tlp, st.session_state.get('hist_tlp',{}), CLAS_COLORS_TLP, SLATE, 'TLP', week_label)
 
     with comp_both:
         all_wks_b = sorted(set(list(hist_hn.keys())+list(hist_tlp.keys())), key=wk_sort)
