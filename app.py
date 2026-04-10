@@ -734,32 +734,32 @@ def fmtk(n):
 def kpi_card(label, value, sub='', top_color=INDIGO, sub_color='#818CF8'):
     return f"""<div style="background:#fff;border-radius:8px;padding:10px 12px;
 border-top:3px solid {top_color};">
-<div style="font-size:9px;color:#6366F1;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">{label}</div>
-<div style="font-size:17px;font-weight:500;color:#162447;font-family:var(--font-mono);">{value}</div>
-<div style="font-size:9px;color:{sub_color};margin-top:2px;">{sub}</div></div>"""
+<div style="font-size:11px;color:#6366F1;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">{label}</div>
+<div style="font-size:22px;font-weight:500;color:#162447;font-family:var(--font-mono);">{value}</div>
+<div style="font-size:11px;color:{sub_color};margin-top:3px;">{sub}</div></div>"""
 
 def clas_bar_row(name, val, total, color):
     pct = val/total*100 if total else 0
     bar_w = int(pct)
     return f"""<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:0.5px solid #EEF2F7;">
-<div style="width:8px;height:8px;border-radius:50%;background:{color};flex-shrink:0;"></div>
-<div style="flex:1;font-size:11px;color:#374151;">{name}</div>
+<div style="width:11px;height:11px;border-radius:50%;background:{color};flex-shrink:0;"></div>
+<div style="flex:1;font-size:14px;color:#374151;">{name}</div>
 <div style="width:80px;background:#EEF2F7;border-radius:2px;height:5px;">
   <div style="width:{bar_w}%;height:5px;border-radius:2px;background:{color};"></div>
 </div>
-<div style="font-size:11px;font-weight:500;color:#162447;min-width:38px;text-align:right;font-family:var(--font-mono);">{fmtk(val)}</div>
-<div style="font-size:10px;color:#818CF8;min-width:30px;text-align:right;">{pct:.1f}%</div>
+<div style="font-size:14px;font-weight:500;color:#162447;min-width:44px;text-align:right;font-family:var(--font-mono);">{fmtk(val)}</div>
+<div style="font-size:12px;color:#818CF8;min-width:36px;text-align:right;">{pct:.1f}%</div>
 </div>"""
 
 def top5_row(rank, code, val, max_val, color=INDIGO):
     bar_w = int(val/max_val*100) if max_val else 0
     return f"""<div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
 <div style="width:16px;height:16px;border-radius:50%;background:#EEF2F7;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:{color};flex-shrink:0;">{rank}</div>
-<div style="font-size:11px;font-weight:600;color:#162447;min-width:26px;">{code}</div>
+<div style="font-size:13px;font-weight:600;color:#162447;min-width:30px;">{code}</div>
 <div style="flex:1;background:#EEF2F7;border-radius:2px;height:5px;">
   <div style="width:{bar_w}%;height:5px;border-radius:2px;background:{color};"></div>
 </div>
-<div style="font-size:10px;color:#818CF8;min-width:38px;text-align:right;">{fmtk(val)}</div>
+<div style="font-size:12px;color:#818CF8;min-width:42px;text-align:right;">{fmtk(val)}</div>
 </div>"""
 
 def alert_card_html(title, sub, icon, bg, rank_color, items, is_pct=False):
@@ -851,19 +851,19 @@ def render_age_bars(df):
 <div style="font-size:11px;font-weight:500;color:#162447;min-width:42px;text-align:right;font-family:var(--font-mono);">{fmtk(val)}</div></div>"""
     st.markdown(html, unsafe_allow_html=True)
 
-def render_donut_plotly(data_series, color_map, height=320):
+def render_donut_plotly(data_series, color_map, height=420):
     labels = list(data_series.index)
     values = [int(v) for v in data_series.values]
     colors = [color_map.get(l,'#94A3B8') for l in labels]
     fig = go.Figure(go.Pie(
         labels=labels, values=values, marker_colors=colors,
-        hole=0.52, textinfo='percent', textfont=dict(size=12),
+        hole=0.50, textinfo='percent', textfont=dict(size=14),
         hovertemplate='%{label}<br>%{value:,}<extra></extra>'
     ))
     fig.update_layout(
         height=height, margin=dict(t=10,b=10,l=10,r=10),
         paper_bgcolor='rgba(0,0,0,0)',
-        legend=dict(font=dict(size=11), orientation='v', x=1.0)
+        legend=dict(font=dict(size=13), orientation='v', x=1.0)
     )
     return fig
 
@@ -1117,7 +1117,7 @@ with tab_dash:
         col_hn, col_tlp = st.columns(2)
         with col_hn:
             if r_hn is not None and not df_vhn.empty:
-                st.markdown(f"<div style='font-size:11px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;'>Honduras — clasificación</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:13px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;'>Honduras — clasificación</div>", unsafe_allow_html=True)
                 cs = df_vhn.groupby('Clasificacion')['Quantity'].sum().sort_values(ascending=False)
                 st.plotly_chart(render_donut_plotly(cs, CLAS_COLORS_HN), use_container_width=True)
                 total_cs = int(cs.sum())
@@ -1128,7 +1128,7 @@ with tab_dash:
 
         with col_tlp:
             if r_tlp is not None and not df_vtlp.empty:
-                st.markdown(f"<div style='font-size:11px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;'>TLP — clasificación</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:13px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;'>TLP — clasificación</div>", unsafe_allow_html=True)
                 cs2 = df_vtlp.groupby('Clasificacion')['Quantity'].sum().sort_values(ascending=False)
                 st.plotly_chart(render_donut_plotly(cs2, CLAS_COLORS_TLP), use_container_width=True)
                 total_cs2 = int(cs2.sum())
@@ -1183,19 +1183,19 @@ with tab_hn:
         st.markdown("<br>", unsafe_allow_html=True)
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown(f"<div style='font-size:11px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;'>Distribución por clasificación</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:13px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;'>Distribución por clasificación</div>", unsafe_allow_html=True)
             cs_h = df_h.groupby('Clasificacion')['Quantity'].sum().sort_values(ascending=False)
             total_cs_h = int(cs_h.sum())
             html_cs = "".join(clas_bar_row(n, v, total_cs_h, CLAS_COLORS_HN.get(n,'#94A3B8')) for n,v in cs_h.items())
             st.markdown(f"<div style='background:#fff;border-radius:8px;padding:12px;'>{html_cs}</div>", unsafe_allow_html=True)
         with c2:
-            st.markdown(f"<div style='font-size:11px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;'>Antigüedad del inventario</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:13px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;'>Antigüedad del inventario</div>", unsafe_allow_html=True)
             st.markdown("<div style='background:#fff;border-radius:8px;padding:12px;'>", unsafe_allow_html=True)
             render_age_bars(df_h)
             st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown(f"<div style='font-size:11px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;'>Por cliente — mayor a menor</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:13px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;'>Por cliente — mayor a menor</div>", unsafe_allow_html=True)
         all_clas_h = HN_FG_CLAS if vmap2[view_h]=='fg' else HN_WIP_CLAS if vmap2[view_h]=='wip' else HN_FG_CLAS+HN_WIP_CLAS
         render_client_table(df_h, all_clas_h, CLAS_COLORS_HN)
 
@@ -1223,19 +1223,19 @@ with tab_tlp:
         st.markdown("<br>", unsafe_allow_html=True)
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown(f"<div style='font-size:11px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;'>Distribución por clasificación</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:13px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;'>Distribución por clasificación</div>", unsafe_allow_html=True)
             cs_t = df_t.groupby('Clasificacion')['Quantity'].sum().sort_values(ascending=False)
             total_cs_t = int(cs_t.sum())
             html_cst = "".join(clas_bar_row(n, v, total_cs_t, CLAS_COLORS_TLP.get(n,'#94A3B8')) for n,v in cs_t.items())
             st.markdown(f"<div style='background:#fff;border-radius:8px;padding:12px;'>{html_cst}</div>", unsafe_allow_html=True)
         with c2:
-            st.markdown(f"<div style='font-size:11px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;'>Antigüedad del inventario</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:13px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;'>Antigüedad del inventario</div>", unsafe_allow_html=True)
             st.markdown("<div style='background:#fff;border-radius:8px;padding:12px;'>", unsafe_allow_html=True)
             render_age_bars(df_t)
             st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown(f"<div style='font-size:11px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;'>Por cliente — mayor a menor</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:13px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;'>Por cliente — mayor a menor</div>", unsafe_allow_html=True)
         all_clas_t = TLP_FG_CLAS if vmap2[view_t]=='fg' else TLP_WIP_CLAS if vmap2[view_t]=='wip' else TLP_FG_CLAS+TLP_WIP_CLAS
         render_client_table(df_t, all_clas_t, CLAS_COLORS_TLP)
 
@@ -1310,7 +1310,7 @@ with tab_comp:
             st.plotly_chart(fig, use_container_width=True)
 
         # Table
-        st.markdown(f"<div style='font-size:11px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;'>Tabla comparativa</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:13px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;'>Tabla comparativa</div>", unsafe_allow_html=True)
         all_c = sorted(set(k for d in weeks_data for k in d.keys()))
         rows = []
         for c in all_c:
@@ -1481,7 +1481,7 @@ with tab_hist:
         st.plotly_chart(fig_h, use_container_width=True)
 
         # Summary table
-        st.markdown(f"<div style='font-size:11px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;'>Resumen por semana</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:13px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;'>Resumen por semana</div>", unsafe_allow_html=True)
         rows_h = []
         for i,w in enumerate(wks_h):
             d = hist[w]
