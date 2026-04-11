@@ -37,14 +37,14 @@ TLP_ORDER=['Crazy Shirts','Dickies','Grupo Beta','INX PRINTS INC.','Outerstuff L
            'Simply Southern','Textiles La Paz','TLP OUTERSTUFF','TLP Vans','Under Armour','Vans','NOVUS','Timberland']
 
 # ── Excel style helpers ──
-NAVY='FF0D2B4E';NAVY_MID='FF1A4A7A';NAVY_LIGHT='FF2E6DA4';NAVY_PALE='FFD6E4F0'
-NAVY_ALT='FFEBF3FB';WHITE='FFFFFFFF';GRAY_MID='FFD0D8E4';ACCENT='FF1B6CA8';SUBTOT='FF2E6DA4';GRAND='FF0D2B4E'
+XNAVY='FF0D2B4E';XNAVY_MID='FF1A4A7A';XNAVY_LIGHT='FF2E6DA4';XNAVY_PALE='FFD6E4F0'
+XNAVY_ALT='FFEBF3FB';XWHITE='FFFFFFFF';XGRAY_MID='FFD0D8E4';XACCENT='FF1B6CA8';XSUBTOT='FF2E6DA4';XGRAND='FF0D2B4E'
 
 def brd():
-    t=Side(style='thin',color=GRAY_MID)
+    t=Side(style='thin',color=XGRAY_MID)
     return Border(left=t,right=t,top=t,bottom=t)
 
-def xh(ws,r,c,v,bg=NAVY,fg=WHITE,sz=10,b=True,ha='center'):
+def xh(ws,r,c,v,bg=XNAVY,fg=XWHITE,sz=10,b=True,ha='center'):
     cell=ws.cell(row=r,column=c,value=v)
     cell.font=Font(bold=b,color=fg,name='Calibri',size=sz)
     cell.fill=PatternFill('solid',start_color=bg)
@@ -61,7 +61,7 @@ def xd(ws,r,c,v,bg=None,b=False,ha='right'):
     return cell
 
 def xdf(ws,r,c,v,bg=None,hmode=False):
-    fg=WHITE if hmode else ('1E6B3C' if v and v>0 else '8B1A1A' if v and v<0 else '1A1A2E')
+    fg=XWHITE if hmode else ('1E6B3C' if v and v>0 else '8B1A1A' if v and v<0 else '1A1A2E')
     cell=ws.cell(row=r,column=c,value=v)
     cell.font=Font(bold=True,color=fg,name='Calibri',size=10)
     if bg:cell.fill=PatternFill('solid',start_color=bg)
@@ -154,7 +154,7 @@ def write_pivot_sheet(ws,df,inv_cols,activos,inactivos):
     p=p[inv_cols];p['Grand Total']=p.sum(axis=1)
     cols=inv_cols+['Grand Total']
     ws.merge_cells('C1:H1');ws['C1']='Inventory Type'
-    ws['C1'].font=Font(bold=True,name='Calibri',size=10,color=NAVY)
+    ws['C1'].font=Font(bold=True,name='Calibri',size=10,color=XNAVY)
     ws['C1'].alignment=Alignment(horizontal='center')
     for ci,h in enumerate(['Clientes','Style CustomerName']+cols,1):xh(ws,2,ci,h)
     row=3
@@ -163,10 +163,10 @@ def write_pivot_sheet(ws,df,inv_cols,activos,inactivos):
         if not clients:continue
         first=True
         for i,cli in enumerate(clients):
-            r=p.loc[cli];fill=NAVY_ALT if i%2==0 else None
+            r=p.loc[cli];fill=XNAVY_ALT if i%2==0 else None
             c1=ws.cell(row=row,column=1,value=gn if first else '')
-            c1.font=Font(bold=True,color=WHITE,name='Calibri',size=10)
-            c1.fill=PatternFill('solid',start_color=ACCENT)
+            c1.font=Font(bold=True,color=XWHITE,name='Calibri',size=10)
+            c1.fill=PatternFill('solid',start_color=XACCENT)
             c1.alignment=Alignment(horizontal='center',vertical='center')
             c1.border=brd();first=False
             xd(ws,row,2,cli,bg=fill,ha='left')
@@ -174,13 +174,13 @@ def write_pivot_sheet(ws,df,inv_cols,activos,inactivos):
             row+=1
         st_row=p.loc[clients].sum()
         ws.merge_cells(start_row=row,start_column=1,end_row=row,end_column=2)
-        xh(ws,row,1,f'{gn} Total',SUBTOT)
-        for ci,col in enumerate(cols,3):xh(ws,row,ci,int(st_row[col]) if st_row[col]!=0 else None,SUBTOT)
+        xh(ws,row,1,f'{gn} Total',XSUBTOT)
+        for ci,col in enumerate(cols,3):xh(ws,row,ci,int(st_row[col]) if st_row[col]!=0 else None,XSUBTOT)
         row+=1
     gt=p.sum()
     ws.merge_cells(start_row=row,start_column=1,end_row=row,end_column=2)
-    xh(ws,row,1,'Grand Total',GRAND)
-    for ci,col in enumerate(cols,3):xh(ws,row,ci,int(gt[col]) if gt[col]!=0 else None,GRAND)
+    xh(ws,row,1,'Grand Total',XGRAND)
+    for ci,col in enumerate(cols,3):xh(ws,row,ci,int(gt[col]) if gt[col]!=0 else None,XGRAND)
     ws.column_dimensions['A'].width=14;ws.column_dimensions['B'].width=38
     for ci in range(3,3+len(cols)):ws.column_dimensions[get_column_letter(ci)].width=15
     ws.freeze_panes='A3'
@@ -206,41 +206,41 @@ def build_excel_hn(df,wk_prev=None,wk_label='WK13'):
         ncols=2+len(years)+1
         ws_age.merge_cells(start_row=sr,start_column=1,end_row=sr,end_column=ncols)
         c=ws_age.cell(row=sr,column=1,value=f'  {label}')
-        c.font=Font(bold=True,color=WHITE,name='Calibri',size=12)
-        c.fill=PatternFill('solid',start_color=NAVY);c.alignment=Alignment(horizontal='left',vertical='center')
+        c.font=Font(bold=True,color=XWHITE,name='Calibri',size=12)
+        c.fill=PatternFill('solid',start_color=XNAVY);c.alignment=Alignment(horizontal='left',vertical='center')
         c.border=brd();ws_age.row_dimensions[sr].height=22;sr+=1
         ws_age.merge_cells(start_row=sr,start_column=3,end_row=sr,end_column=2+len(years))
-        xh(ws_age,sr,1,'Clientes',NAVY_MID);xh(ws_age,sr,2,'Customer Name',NAVY_MID)
-        xh(ws_age,sr,3,'Year of Creation',NAVY_MID)
+        xh(ws_age,sr,1,'Clientes',XNAVY_MID);xh(ws_age,sr,2,'Customer Name',XNAVY_MID)
+        xh(ws_age,sr,3,'Year of Creation',XNAVY_MID)
         for ci in range(4,2+len(years)+1):
-            c=ws_age.cell(row=sr,column=ci);c.fill=PatternFill('solid',start_color=NAVY_MID);c.border=brd()
-        xh(ws_age,sr,2+len(years)+1,'Grand Total',NAVY_MID);sr+=1
-        xh(ws_age,sr,1,'',NAVY_LIGHT);xh(ws_age,sr,2,'',NAVY_LIGHT)
-        for yi,yr in enumerate(years):xh(ws_age,sr,3+yi,int(yr),NAVY_LIGHT)
-        xh(ws_age,sr,3+len(years),'Grand Total',NAVY_LIGHT);sr+=1
+            c=ws_age.cell(row=sr,column=ci);c.fill=PatternFill('solid',start_color=XNAVY_MID);c.border=brd()
+        xh(ws_age,sr,2+len(years)+1,'Grand Total',XNAVY_MID);sr+=1
+        xh(ws_age,sr,1,'',XNAVY_LIGHT);xh(ws_age,sr,2,'',XNAVY_LIGHT)
+        for yi,yr in enumerate(years):xh(ws_age,sr,3+yi,int(yr),XNAVY_LIGHT)
+        xh(ws_age,sr,3+len(years),'Grand Total',XNAVY_LIGHT);sr+=1
         for gn,gl in [('Activos',ACTIVOS),('Inactivos',INACTIVOS)]:
             clients=[c for c in gl if c in p.index]
             if not clients:continue
             first=True
             for i,cli in enumerate(clients):
-                r=p.loc[cli];rb=NAVY_ALT if i%2==0 else None
+                r=p.loc[cli];rb=XNAVY_ALT if i%2==0 else None
                 c1=ws_age.cell(row=sr,column=1,value=gn if first else '')
-                c1.font=Font(bold=True,color=WHITE,name='Calibri',size=10)
-                c1.fill=PatternFill('solid',start_color=ACCENT)
+                c1.font=Font(bold=True,color=XWHITE,name='Calibri',size=10)
+                c1.fill=PatternFill('solid',start_color=XACCENT)
                 c1.alignment=Alignment(horizontal='center',vertical='center');c1.border=brd();first=False
                 xd(ws_age,sr,2,cli,bg=rb,ha='left')
                 for yi,yr in enumerate(years):xd(ws_age,sr,3+yi,int(r[yr]) if r[yr]!=0 else None,bg=rb)
-                xd(ws_age,sr,3+len(years),int(r['Grand Total']),bg=NAVY_PALE,b=True);sr+=1
+                xd(ws_age,sr,3+len(years),int(r['Grand Total']),bg=XNAVY_PALE,b=True);sr+=1
             st2=p.loc[clients].sum()
             ws_age.merge_cells(start_row=sr,start_column=1,end_row=sr,end_column=2)
-            xh(ws_age,sr,1,f'{gn} Total',SUBTOT)
-            for yi,yr in enumerate(years):xh(ws_age,sr,3+yi,int(st2[yr]) if st2[yr]!=0 else None,SUBTOT)
-            xh(ws_age,sr,3+len(years),int(st2['Grand Total']),SUBTOT);sr+=1
+            xh(ws_age,sr,1,f'{gn} Total',XSUBTOT)
+            for yi,yr in enumerate(years):xh(ws_age,sr,3+yi,int(st2[yr]) if st2[yr]!=0 else None,XSUBTOT)
+            xh(ws_age,sr,3+len(years),int(st2['Grand Total']),XSUBTOT);sr+=1
         gt=p.sum()
         ws_age.merge_cells(start_row=sr,start_column=1,end_row=sr,end_column=2)
-        xh(ws_age,sr,1,'Grand Total',GRAND)
-        for yi,yr in enumerate(years):xh(ws_age,sr,3+yi,int(gt[yr]) if gt[yr]!=0 else None,GRAND)
-        xh(ws_age,sr,3+len(years),int(gt['Grand Total']),GRAND)
+        xh(ws_age,sr,1,'Grand Total',XGRAND)
+        for yi,yr in enumerate(years):xh(ws_age,sr,3+yi,int(gt[yr]) if gt[yr]!=0 else None,XGRAND)
+        xh(ws_age,sr,3+len(years),int(gt['Grand Total']),XGRAND)
 
     ws_age.column_dimensions['A'].width=14;ws_age.column_dimensions['B'].width=36
     for ci in range(3,3+len(years)+1):ws_age.column_dimensions[get_column_letter(ci)].width=10
@@ -257,22 +257,22 @@ def build_excel_hn(df,wk_prev=None,wk_label='WK13'):
     p=p.sort_values('Grand Total',ascending=False)
     ws_dmg.merge_cells('A1:E1')
     c=ws_dmg.cell(row=1,column=1,value='  Damage Severity — Irregulars Summary')
-    c.font=Font(bold=True,color=WHITE,name='Calibri',size=13)
-    c.fill=PatternFill('solid',start_color=NAVY);c.alignment=Alignment(horizontal='left',vertical='center')
+    c.font=Font(bold=True,color=XWHITE,name='Calibri',size=13)
+    c.fill=PatternFill('solid',start_color=XNAVY);c.alignment=Alignment(horizontal='left',vertical='center')
     c.border=brd();ws_dmg.row_dimensions[1].height=26
     ws_dmg.merge_cells('C2:D2')
-    xh(ws_dmg,2,1,'Inventory Type',NAVY_MID);xh(ws_dmg,2,2,'Style CustomerName',NAVY_MID)
-    xh(ws_dmg,2,3,'Damage Severity',NAVY_MID)
-    ws_dmg.cell(row=2,column=4).fill=PatternFill('solid',start_color=NAVY_MID);ws_dmg.cell(row=2,column=4).border=brd()
-    xh(ws_dmg,2,5,'Grand Total',NAVY_MID)
-    xh(ws_dmg,3,1,'',NAVY_LIGHT);xh(ws_dmg,3,2,'',NAVY_LIGHT)
-    xh(ws_dmg,3,3,'0, 1',NAVY_LIGHT);xh(ws_dmg,3,4,'2 +',NAVY_LIGHT);xh(ws_dmg,3,5,'Grand Total',NAVY_LIGHT)
+    xh(ws_dmg,2,1,'Inventory Type',XNAVY_MID);xh(ws_dmg,2,2,'Style CustomerName',XNAVY_MID)
+    xh(ws_dmg,2,3,'Damage Severity',XNAVY_MID)
+    ws_dmg.cell(row=2,column=4).fill=PatternFill('solid',start_color=XNAVY_MID);ws_dmg.cell(row=2,column=4).border=brd()
+    xh(ws_dmg,2,5,'Grand Total',XNAVY_MID)
+    xh(ws_dmg,3,1,'',XNAVY_LIGHT);xh(ws_dmg,3,2,'',XNAVY_LIGHT)
+    xh(ws_dmg,3,3,'0, 1',XNAVY_LIGHT);xh(ws_dmg,3,4,'2 +',XNAVY_LIGHT);xh(ws_dmg,3,5,'Grand Total',XNAVY_LIGHT)
     row=4;first=True
     for i,(cli,r) in enumerate(p.iterrows()):
-        fill=NAVY_ALT if i%2==0 else None
+        fill=XNAVY_ALT if i%2==0 else None
         c1=ws_dmg.cell(row=row,column=1,value='Irregulars' if first else '')
-        c1.font=Font(bold=True,color=WHITE,name='Calibri',size=10)
-        c1.fill=PatternFill('solid',start_color=ACCENT)
+        c1.font=Font(bold=True,color=XWHITE,name='Calibri',size=10)
+        c1.fill=PatternFill('solid',start_color=XACCENT)
         c1.alignment=Alignment(horizontal='center',vertical='center');c1.border=brd();first=False
         xd(ws_dmg,row,2,cli,bg=fill,ha='left')
         xd(ws_dmg,row,3,int(r['0, 1']) if r['0, 1']!=0 else None,bg=fill)
@@ -280,10 +280,10 @@ def build_excel_hn(df,wk_prev=None,wk_label='WK13'):
         xd(ws_dmg,row,5,int(r['Grand Total']),bg=fill,b=True);row+=1
     gt=p.sum()
     ws_dmg.merge_cells(start_row=row,start_column=1,end_row=row,end_column=2)
-    xh(ws_dmg,row,1,'Grand Total',GRAND)
-    xh(ws_dmg,row,3,int(gt['0, 1']) if gt['0, 1']!=0 else None,GRAND)
-    xh(ws_dmg,row,4,int(gt['2+']) if gt['2+']!=0 else None,GRAND)
-    xh(ws_dmg,row,5,int(gt['Grand Total']),GRAND)
+    xh(ws_dmg,row,1,'Grand Total',XGRAND)
+    xh(ws_dmg,row,3,int(gt['0, 1']) if gt['0, 1']!=0 else None,XGRAND)
+    xh(ws_dmg,row,4,int(gt['2+']) if gt['2+']!=0 else None,XGRAND)
+    xh(ws_dmg,row,5,int(gt['Grand Total']),XGRAND)
     for col,w in zip('ABCDE',[16,28,14,14,14]):ws_dmg.column_dimensions[col].width=w
     ws_dmg.freeze_panes='C4'
 
@@ -298,26 +298,26 @@ def build_excel_hn(df,wk_prev=None,wk_label='WK13'):
     pp=pp.reindex([c for c in order if c in pp.index]+[c for c in pp.index if c not in order])
     ws_prog.merge_cells('A1:E1')
     c=ws_prog.cell(row=1,column=1,value='  Program Summary — BLANKS vs PRINTED  (Finished Goods)')
-    c.font=Font(bold=True,color=WHITE,name='Calibri',size=13)
-    c.fill=PatternFill('solid',start_color=NAVY);c.alignment=Alignment(horizontal='left',vertical='center')
+    c.font=Font(bold=True,color=XWHITE,name='Calibri',size=13)
+    c.fill=PatternFill('solid',start_color=XNAVY);c.alignment=Alignment(horizontal='left',vertical='center')
     c.border=brd();ws_prog.row_dimensions[1].height=26
     ws_prog.merge_cells('B2:C2')
-    xh(ws_prog,2,1,'Inventory Type',NAVY_MID);xh(ws_prog,2,2,'Program',NAVY_MID)
-    ws_prog.cell(row=2,column=3).fill=PatternFill('solid',start_color=NAVY_MID);ws_prog.cell(row=2,column=3).border=brd()
-    xh(ws_prog,2,4,'Grand Total',NAVY_MID)
-    xh(ws_prog,3,1,'',NAVY_LIGHT);xh(ws_prog,3,2,'BLANKS',NAVY_LIGHT)
-    xh(ws_prog,3,3,'PRINTED',NAVY_LIGHT);xh(ws_prog,3,4,'Grand Total',NAVY_LIGHT)
+    xh(ws_prog,2,1,'Inventory Type',XNAVY_MID);xh(ws_prog,2,2,'Program',XNAVY_MID)
+    ws_prog.cell(row=2,column=3).fill=PatternFill('solid',start_color=XNAVY_MID);ws_prog.cell(row=2,column=3).border=brd()
+    xh(ws_prog,2,4,'Grand Total',XNAVY_MID)
+    xh(ws_prog,3,1,'',XNAVY_LIGHT);xh(ws_prog,3,2,'BLANKS',XNAVY_LIGHT)
+    xh(ws_prog,3,3,'PRINTED',XNAVY_LIGHT);xh(ws_prog,3,4,'Grand Total',XNAVY_LIGHT)
     for i,(clas,r) in enumerate(pp.iterrows()):
-        fill=NAVY_ALT if i%2==0 else None
+        fill=XNAVY_ALT if i%2==0 else None
         xd(ws_prog,4+i,1,clas,bg=fill,ha='left')
         xd(ws_prog,4+i,2,int(r['BLANKS']) if r['BLANKS']!=0 else None,bg=fill)
         xd(ws_prog,4+i,3,int(r['PRINTED']) if r['PRINTED']!=0 else None,bg=fill)
         xd(ws_prog,4+i,4,int(r['Grand Total']),bg=fill,b=True)
     last=4+len(pp);gt=pp.sum()
-    xh(ws_prog,last,1,'Grand Total',GRAND,ha='left')
-    xh(ws_prog,last,2,int(gt['BLANKS']) if gt['BLANKS']!=0 else None,GRAND)
-    xh(ws_prog,last,3,int(gt['PRINTED']) if gt['PRINTED']!=0 else None,GRAND)
-    xh(ws_prog,last,4,int(gt['Grand Total']),GRAND)
+    xh(ws_prog,last,1,'Grand Total',XGRAND,ha='left')
+    xh(ws_prog,last,2,int(gt['BLANKS']) if gt['BLANKS']!=0 else None,XGRAND)
+    xh(ws_prog,last,3,int(gt['PRINTED']) if gt['PRINTED']!=0 else None,XGRAND)
+    xh(ws_prog,last,4,int(gt['Grand Total']),XGRAND)
     for col,w in zip('ABCD',[26,16,16,16]):ws_prog.column_dimensions[col].width=w
     ws_prog.freeze_panes='A4'
 
@@ -333,31 +333,31 @@ def build_excel_hn(df,wk_prev=None,wk_label='WK13'):
         ncols=2+len(inv_types)*3+3
         ws_comp.merge_cells(start_row=1,start_column=1,end_row=1,end_column=ncols)
         c=ws_comp.cell(row=1,column=1,value=f'  Inventory Comparison — {wk_label} vs WK Anterior  (Finished Goods)')
-        c.font=Font(bold=True,color=WHITE,name='Calibri',size=13)
-        c.fill=PatternFill('solid',start_color=NAVY);c.alignment=Alignment(horizontal='left',vertical='center')
+        c.font=Font(bold=True,color=XWHITE,name='Calibri',size=13)
+        c.fill=PatternFill('solid',start_color=XNAVY);c.alignment=Alignment(horizontal='left',vertical='center')
         c.border=brd();ws_comp.row_dimensions[1].height=26
-        xh(ws_comp,2,1,'Clientes',NAVY_MID);xh(ws_comp,2,2,'Customer Name',NAVY_MID)
+        xh(ws_comp,2,1,'Clientes',XNAVY_MID);xh(ws_comp,2,2,'Customer Name',XNAVY_MID)
         col=3
         for t in inv_types:
             ws_comp.merge_cells(start_row=2,start_column=col,end_row=2,end_column=col+2)
-            xh(ws_comp,2,col,t,NAVY_MID);col+=3
+            xh(ws_comp,2,col,t,XNAVY_MID);col+=3
         ws_comp.merge_cells(start_row=2,start_column=col,end_row=2,end_column=col+2)
-        xh(ws_comp,2,col,'Grand Total',NAVY)
-        xh(ws_comp,3,1,'',NAVY_LIGHT);xh(ws_comp,3,2,'',NAVY_LIGHT)
+        xh(ws_comp,2,col,'Grand Total',XNAVY)
+        xh(ws_comp,3,1,'',XNAVY_LIGHT);xh(ws_comp,3,2,'',XNAVY_LIGHT)
         col=3
         for t in inv_types:
-            xh(ws_comp,3,col,'WK Ant.',NAVY_LIGHT);xh(ws_comp,3,col+1,wk_label,NAVY_LIGHT);xh(ws_comp,3,col+2,'Diff',NAVY_LIGHT);col+=3
-        xh(ws_comp,3,col,'WK Ant.',NAVY);xh(ws_comp,3,col+1,wk_label,NAVY);xh(ws_comp,3,col+2,'Diff',NAVY)
+            xh(ws_comp,3,col,'WK Ant.',XNAVY_LIGHT);xh(ws_comp,3,col+1,wk_label,XNAVY_LIGHT);xh(ws_comp,3,col+2,'Diff',XNAVY_LIGHT);col+=3
+        xh(ws_comp,3,col,'WK Ant.',XNAVY);xh(ws_comp,3,col+1,wk_label,XNAVY);xh(ws_comp,3,col+2,'Diff',XNAVY)
         row=4;tot12={t:0 for t in inv_types};tot13={t:0 for t in inv_types}
         for gn,gl in [('Activos',ACTIVOS),('Inactivos',INACTIVOS)]:
             first=True
             for i,cli in enumerate(gl):
                 w12=wk_prev.get(cli,{t:0 for t in inv_types})
                 w13={t:int(wk13_p.loc[cli,t]) if cli in wk13_p.index and t in wk13_p.columns else 0 for t in inv_types}
-                fill=NAVY_ALT if i%2==0 else None
+                fill=XNAVY_ALT if i%2==0 else None
                 c1=ws_comp.cell(row=row,column=1,value=gn if first else '')
-                c1.font=Font(bold=True,color=WHITE,name='Calibri',size=10)
-                c1.fill=PatternFill('solid',start_color=ACCENT)
+                c1.font=Font(bold=True,color=XWHITE,name='Calibri',size=10)
+                c1.fill=PatternFill('solid',start_color=XACCENT)
                 c1.alignment=Alignment(horizontal='center',vertical='center');c1.border=brd();first=False
                 xd(ws_comp,row,2,cli,bg=fill,ha='left')
                 col=3;gt12=gt13=0
@@ -373,23 +373,23 @@ def build_excel_hn(df,wk_prev=None,wk_label='WK13'):
             s12={t:sum(wk_prev.get(c,{t:0 for t in inv_types})[t] for c in gl) for t in inv_types}
             s13={t:sum(int(wk13_p.loc[c,t]) if c in wk13_p.index and t in wk13_p.columns else 0 for c in gl) for t in inv_types}
             ws_comp.merge_cells(start_row=row,start_column=1,end_row=row,end_column=2)
-            xh(ws_comp,row,1,f'{gn} Total',SUBTOT);col=3;sgt12=sgt13=0
+            xh(ws_comp,row,1,f'{gn} Total',XSUBTOT);col=3;sgt12=sgt13=0
             for t in inv_types:
-                xh(ws_comp,row,col,s12[t] if s12[t] else None,SUBTOT)
-                xh(ws_comp,row,col+1,s13[t] if s13[t] else None,SUBTOT)
-                xdf(ws_comp,row,col+2,(s13[t]-s12[t]) if s13[t]-s12[t]!=0 else None,bg=SUBTOT,hmode=True)
+                xh(ws_comp,row,col,s12[t] if s12[t] else None,XSUBTOT)
+                xh(ws_comp,row,col+1,s13[t] if s13[t] else None,XSUBTOT)
+                xdf(ws_comp,row,col+2,(s13[t]-s12[t]) if s13[t]-s12[t]!=0 else None,bg=XSUBTOT,hmode=True)
                 sgt12+=s12[t];sgt13+=s13[t];col+=3
-            xh(ws_comp,row,col,sgt12,SUBTOT);xh(ws_comp,row,col+1,sgt13,SUBTOT)
-            xdf(ws_comp,row,col+2,sgt13-sgt12,bg=SUBTOT,hmode=True);row+=1
+            xh(ws_comp,row,col,sgt12,XSUBTOT);xh(ws_comp,row,col+1,sgt13,XSUBTOT)
+            xdf(ws_comp,row,col+2,sgt13-sgt12,bg=XSUBTOT,hmode=True);row+=1
         ws_comp.merge_cells(start_row=row,start_column=1,end_row=row,end_column=2)
-        xh(ws_comp,row,1,'Grand Total',GRAND);col=3;ggt12=ggt13=0
+        xh(ws_comp,row,1,'Grand Total',XGRAND);col=3;ggt12=ggt13=0
         for t in inv_types:
-            xh(ws_comp,row,col,tot12[t] if tot12[t] else None,GRAND)
-            xh(ws_comp,row,col+1,tot13[t] if tot13[t] else None,GRAND)
-            xdf(ws_comp,row,col+2,(tot13[t]-tot12[t]) if tot13[t]-tot12[t]!=0 else None,bg=GRAND,hmode=True)
+            xh(ws_comp,row,col,tot12[t] if tot12[t] else None,XGRAND)
+            xh(ws_comp,row,col+1,tot13[t] if tot13[t] else None,XGRAND)
+            xdf(ws_comp,row,col+2,(tot13[t]-tot12[t]) if tot13[t]-tot12[t]!=0 else None,bg=XGRAND,hmode=True)
             ggt12+=tot12[t];ggt13+=tot13[t];col+=3
-        xh(ws_comp,row,col,ggt12,GRAND);xh(ws_comp,row,col+1,ggt13,GRAND)
-        xdf(ws_comp,row,col+2,ggt13-ggt12,bg=GRAND,hmode=True)
+        xh(ws_comp,row,col,ggt12,XGRAND);xh(ws_comp,row,col+1,ggt13,XGRAND)
+        xdf(ws_comp,row,col+2,ggt13-ggt12,bg=XGRAND,hmode=True)
         ws_comp.column_dimensions['A'].width=12;ws_comp.column_dimensions['B'].width=36
         col=3
         for _ in inv_types:
@@ -415,18 +415,18 @@ def build_excel_tlp(df,wk_prev=None,wk_label='WK13'):
         if t not in p.columns:p[t]=0
     p['Grand Total']=p[inv_tlp].sum(axis=1)
     ws1.merge_cells(start_row=1,start_column=3,end_row=1,end_column=2+len(inv_tlp))
-    ws1['C1']='Inventory Type';ws1['C1'].font=Font(bold=True,name='Calibri',size=10,color=NAVY)
+    ws1['C1']='Inventory Type';ws1['C1'].font=Font(bold=True,name='Calibri',size=10,color=XNAVY)
     ws1['C1'].alignment=Alignment(horizontal='center')
     for ci,h in enumerate(['Cliente','Style CustomerName']+inv_tlp+['Grand Total'],1):xh(ws1,2,ci,h)
     for i,cli in enumerate(all_clients):
         if cli not in p.index:continue
-        r=p.loc[cli];fill=NAVY_ALT if i%2==0 else None
+        r=p.loc[cli];fill=XNAVY_ALT if i%2==0 else None
         ws1.cell(row=3+i,column=1,value='').border=brd()
         xd(ws1,3+i,2,cli,bg=fill,ha='left')
         for ci,col in enumerate(inv_tlp+['Grand Total'],3):xd(ws1,3+i,ci,int(r[col]) if r[col]!=0 else None,bg=fill)
     last=3+len(all_clients);gt=p[inv_tlp+['Grand Total']].sum()
-    ws1.merge_cells(start_row=last,start_column=1,end_row=last,end_column=2);xh(ws1,last,1,'Grand Total',GRAND)
-    for ci,col in enumerate(inv_tlp+['Grand Total'],3):xh(ws1,last,ci,int(gt[col]) if gt[col]!=0 else None,GRAND)
+    ws1.merge_cells(start_row=last,start_column=1,end_row=last,end_column=2);xh(ws1,last,1,'Grand Total',XGRAND)
+    for ci,col in enumerate(inv_tlp+['Grand Total'],3):xh(ws1,last,ci,int(gt[col]) if gt[col]!=0 else None,XGRAND)
     ws1.column_dimensions['A'].width=5;ws1.column_dimensions['B'].width=22
     for ci in range(3,3+len(inv_tlp)+2):ws1.column_dimensions[get_column_letter(ci)].width=22
     ws1.freeze_panes='B3'
@@ -440,28 +440,28 @@ def build_excel_tlp(df,wk_prev=None,wk_label='WK13'):
     ncols=2+len(years)+1
     ws_age.merge_cells(start_row=1,start_column=1,end_row=1,end_column=ncols)
     c=ws_age.cell(row=1,column=1,value='  Antigüedad del Inventario TLP')
-    c.font=Font(bold=True,color=WHITE,name='Calibri',size=12)
-    c.fill=PatternFill('solid',start_color=NAVY);c.alignment=Alignment(horizontal='left',vertical='center')
+    c.font=Font(bold=True,color=XWHITE,name='Calibri',size=12)
+    c.fill=PatternFill('solid',start_color=XNAVY);c.alignment=Alignment(horizontal='left',vertical='center')
     c.border=brd();ws_age.row_dimensions[1].height=22
     ws_age.merge_cells(start_row=2,start_column=3,end_row=2,end_column=2+len(years))
-    xh(ws_age,2,1,'',NAVY_MID);xh(ws_age,2,2,'Customer Name',NAVY_MID);xh(ws_age,2,3,'Year of Creation',NAVY_MID)
+    xh(ws_age,2,1,'',XNAVY_MID);xh(ws_age,2,2,'Customer Name',XNAVY_MID);xh(ws_age,2,3,'Year of Creation',XNAVY_MID)
     for ci in range(4,2+len(years)+1):
-        c=ws_age.cell(row=2,column=ci);c.fill=PatternFill('solid',start_color=NAVY_MID);c.border=brd()
-    xh(ws_age,2,2+len(years)+1,'Grand Total',NAVY_MID)
-    xh(ws_age,3,1,'',NAVY_LIGHT);xh(ws_age,3,2,'',NAVY_LIGHT)
-    for yi,yr in enumerate(years):xh(ws_age,3,3+yi,int(yr),NAVY_LIGHT)
-    xh(ws_age,3,3+len(years),'Grand Total',NAVY_LIGHT)
+        c=ws_age.cell(row=2,column=ci);c.fill=PatternFill('solid',start_color=XNAVY_MID);c.border=brd()
+    xh(ws_age,2,2+len(years)+1,'Grand Total',XNAVY_MID)
+    xh(ws_age,3,1,'',XNAVY_LIGHT);xh(ws_age,3,2,'',XNAVY_LIGHT)
+    for yi,yr in enumerate(years):xh(ws_age,3,3+yi,int(yr),XNAVY_LIGHT)
+    xh(ws_age,3,3+len(years),'Grand Total',XNAVY_LIGHT)
     for i,cli in enumerate(all_clients):
         if cli not in p2.index:continue
-        r=p2.loc[cli];rb=NAVY_ALT if i%2==0 else None
+        r=p2.loc[cli];rb=XNAVY_ALT if i%2==0 else None
         ws_age.cell(row=4+i,column=1,value='').border=brd()
         xd(ws_age,4+i,2,cli,bg=rb,ha='left')
         for yi,yr in enumerate(years):xd(ws_age,4+i,3+yi,int(r[yr]) if r[yr]!=0 else None,bg=rb)
-        xd(ws_age,4+i,3+len(years),int(r['Grand Total']),bg=NAVY_PALE,b=True)
+        xd(ws_age,4+i,3+len(years),int(r['Grand Total']),bg=XNAVY_PALE,b=True)
     last2=4+len(all_clients);gt2=p2.sum()
-    ws_age.merge_cells(start_row=last2,start_column=1,end_row=last2,end_column=2);xh(ws_age,last2,1,'Grand Total',GRAND)
-    for yi,yr in enumerate(years):xh(ws_age,last2,3+yi,int(gt2[yr]) if gt2[yr]!=0 else None,GRAND)
-    xh(ws_age,last2,3+len(years),int(gt2['Grand Total']),GRAND)
+    ws_age.merge_cells(start_row=last2,start_column=1,end_row=last2,end_column=2);xh(ws_age,last2,1,'Grand Total',XGRAND)
+    for yi,yr in enumerate(years):xh(ws_age,last2,3+yi,int(gt2[yr]) if gt2[yr]!=0 else None,XGRAND)
+    xh(ws_age,last2,3+len(years),int(gt2['Grand Total']),XGRAND)
     ws_age.column_dimensions['A'].width=5;ws_age.column_dimensions['B'].width=22
     for ci in range(3,3+len(years)+1):ws_age.column_dimensions[get_column_letter(ci)].width=10
     ws_age.column_dimensions[get_column_letter(3+len(years))].width=13;ws_age.freeze_panes='C4'
@@ -478,32 +478,32 @@ def build_excel_tlp(df,wk_prev=None,wk_label='WK13'):
     pd3=pd3.reindex(ordered)
     ws_dmg.merge_cells('A1:E1')
     c=ws_dmg.cell(row=1,column=1,value='  Damage Severity — TLP Irregulars Summary')
-    c.font=Font(bold=True,color=WHITE,name='Calibri',size=13)
-    c.fill=PatternFill('solid',start_color=NAVY);c.alignment=Alignment(horizontal='left',vertical='center')
+    c.font=Font(bold=True,color=XWHITE,name='Calibri',size=13)
+    c.fill=PatternFill('solid',start_color=XNAVY);c.alignment=Alignment(horizontal='left',vertical='center')
     c.border=brd();ws_dmg.row_dimensions[1].height=26
     ws_dmg.merge_cells('C2:D2')
-    xh(ws_dmg,2,1,'Inventory Type',NAVY_MID);xh(ws_dmg,2,2,'Style CustomerName',NAVY_MID)
-    xh(ws_dmg,2,3,'Damage Severity',NAVY_MID)
-    ws_dmg.cell(row=2,column=4).fill=PatternFill('solid',start_color=NAVY_MID);ws_dmg.cell(row=2,column=4).border=brd()
-    xh(ws_dmg,2,5,'Grand Total',NAVY_MID)
-    xh(ws_dmg,3,1,'',NAVY_LIGHT);xh(ws_dmg,3,2,'',NAVY_LIGHT)
-    xh(ws_dmg,3,3,'0, 1',NAVY_LIGHT);xh(ws_dmg,3,4,'2 +',NAVY_LIGHT);xh(ws_dmg,3,5,'Grand Total',NAVY_LIGHT)
+    xh(ws_dmg,2,1,'Inventory Type',XNAVY_MID);xh(ws_dmg,2,2,'Style CustomerName',XNAVY_MID)
+    xh(ws_dmg,2,3,'Damage Severity',XNAVY_MID)
+    ws_dmg.cell(row=2,column=4).fill=PatternFill('solid',start_color=XNAVY_MID);ws_dmg.cell(row=2,column=4).border=brd()
+    xh(ws_dmg,2,5,'Grand Total',XNAVY_MID)
+    xh(ws_dmg,3,1,'',XNAVY_LIGHT);xh(ws_dmg,3,2,'',XNAVY_LIGHT)
+    xh(ws_dmg,3,3,'0, 1',XNAVY_LIGHT);xh(ws_dmg,3,4,'2 +',XNAVY_LIGHT);xh(ws_dmg,3,5,'Grand Total',XNAVY_LIGHT)
     row=4;first=True
     for i,(cli,r) in enumerate(pd3.iterrows()):
-        fill=NAVY_ALT if i%2==0 else None
+        fill=XNAVY_ALT if i%2==0 else None
         c1=ws_dmg.cell(row=row,column=1,value='TLP Irregulars' if first else '')
-        c1.font=Font(bold=True,color=WHITE,name='Calibri',size=10)
-        c1.fill=PatternFill('solid',start_color=ACCENT)
+        c1.font=Font(bold=True,color=XWHITE,name='Calibri',size=10)
+        c1.fill=PatternFill('solid',start_color=XACCENT)
         c1.alignment=Alignment(horizontal='center',vertical='center');c1.border=brd();first=False
         xd(ws_dmg,row,2,cli,bg=fill,ha='left')
         xd(ws_dmg,row,3,int(r['0, 1']) if r['0, 1']!=0 else None,bg=fill)
         xd(ws_dmg,row,4,int(r['2+']) if r['2+']!=0 else None,bg=fill)
         xd(ws_dmg,row,5,int(r['Grand Total']),bg=fill,b=True);row+=1
     gt3=pd3.sum()
-    ws_dmg.merge_cells(start_row=row,start_column=1,end_row=row,end_column=2);xh(ws_dmg,row,1,'Grand Total',GRAND)
-    xh(ws_dmg,row,3,int(gt3['0, 1']) if gt3['0, 1']!=0 else None,GRAND)
-    xh(ws_dmg,row,4,int(gt3['2+']) if gt3['2+']!=0 else None,GRAND)
-    xh(ws_dmg,row,5,int(gt3['Grand Total']),GRAND)
+    ws_dmg.merge_cells(start_row=row,start_column=1,end_row=row,end_column=2);xh(ws_dmg,row,1,'Grand Total',XGRAND)
+    xh(ws_dmg,row,3,int(gt3['0, 1']) if gt3['0, 1']!=0 else None,XGRAND)
+    xh(ws_dmg,row,4,int(gt3['2+']) if gt3['2+']!=0 else None,XGRAND)
+    xh(ws_dmg,row,5,int(gt3['Grand Total']),XGRAND)
     for col,w in zip('ABCDE',[16,28,14,14,14]):ws_dmg.column_dimensions[col].width=w
     ws_dmg.freeze_panes='C4'
 
@@ -518,26 +518,26 @@ def build_excel_tlp(df,wk_prev=None,wk_label='WK13'):
     pp=pp.reindex([c for c in order2 if c in pp.index]+[c for c in pp.index if c not in order2])
     ws_prog.merge_cells('A1:E1')
     c=ws_prog.cell(row=1,column=1,value='  Program Summary — BLANKS vs PRINTED  (Finished Goods)')
-    c.font=Font(bold=True,color=WHITE,name='Calibri',size=13)
-    c.fill=PatternFill('solid',start_color=NAVY);c.alignment=Alignment(horizontal='left',vertical='center')
+    c.font=Font(bold=True,color=XWHITE,name='Calibri',size=13)
+    c.fill=PatternFill('solid',start_color=XNAVY);c.alignment=Alignment(horizontal='left',vertical='center')
     c.border=brd();ws_prog.row_dimensions[1].height=26
     ws_prog.merge_cells('B2:C2')
-    xh(ws_prog,2,1,'Inventory Type',NAVY_MID);xh(ws_prog,2,2,'Program',NAVY_MID)
-    ws_prog.cell(row=2,column=3).fill=PatternFill('solid',start_color=NAVY_MID);ws_prog.cell(row=2,column=3).border=brd()
-    xh(ws_prog,2,4,'Grand Total',NAVY_MID)
-    xh(ws_prog,3,1,'',NAVY_LIGHT);xh(ws_prog,3,2,'BLANKS',NAVY_LIGHT)
-    xh(ws_prog,3,3,'PRINTED',NAVY_LIGHT);xh(ws_prog,3,4,'Grand Total',NAVY_LIGHT)
+    xh(ws_prog,2,1,'Inventory Type',XNAVY_MID);xh(ws_prog,2,2,'Program',XNAVY_MID)
+    ws_prog.cell(row=2,column=3).fill=PatternFill('solid',start_color=XNAVY_MID);ws_prog.cell(row=2,column=3).border=brd()
+    xh(ws_prog,2,4,'Grand Total',XNAVY_MID)
+    xh(ws_prog,3,1,'',XNAVY_LIGHT);xh(ws_prog,3,2,'BLANKS',XNAVY_LIGHT)
+    xh(ws_prog,3,3,'PRINTED',XNAVY_LIGHT);xh(ws_prog,3,4,'Grand Total',XNAVY_LIGHT)
     for i,(clas,r) in enumerate(pp.iterrows()):
-        fill=NAVY_ALT if i%2==0 else None
+        fill=XNAVY_ALT if i%2==0 else None
         xd(ws_prog,4+i,1,clas,bg=fill,ha='left')
         xd(ws_prog,4+i,2,int(r['BLANKS']) if r['BLANKS']!=0 else None,bg=fill)
         xd(ws_prog,4+i,3,int(r['PRINTED']) if r['PRINTED']!=0 else None,bg=fill)
         xd(ws_prog,4+i,4,int(r['Grand Total']),bg=fill,b=True)
     last3=4+len(pp);gt4=pp.sum()
-    xh(ws_prog,last3,1,'Grand Total',GRAND,ha='left')
-    xh(ws_prog,last3,2,int(gt4['BLANKS']) if gt4['BLANKS']!=0 else None,GRAND)
-    xh(ws_prog,last3,3,int(gt4['PRINTED']) if gt4['PRINTED']!=0 else None,GRAND)
-    xh(ws_prog,last3,4,int(gt4['Grand Total']),GRAND)
+    xh(ws_prog,last3,1,'Grand Total',XGRAND,ha='left')
+    xh(ws_prog,last3,2,int(gt4['BLANKS']) if gt4['BLANKS']!=0 else None,XGRAND)
+    xh(ws_prog,last3,3,int(gt4['PRINTED']) if gt4['PRINTED']!=0 else None,XGRAND)
+    xh(ws_prog,last3,4,int(gt4['Grand Total']),XGRAND)
     for col,w in zip('ABCD',[26,16,16,16]):ws_prog.column_dimensions[col].width=w
     ws_prog.freeze_panes='A4'
 
@@ -551,26 +551,26 @@ def build_excel_tlp(df,wk_prev=None,wk_label='WK13'):
         ncols=2+len(inv_comp)*3+3
         ws_comp.merge_cells(start_row=1,start_column=1,end_row=1,end_column=ncols)
         c=ws_comp.cell(row=1,column=1,value=f'  Inventory Comparison TLP — {wk_label} vs WK Anterior  (sin Wip)')
-        c.font=Font(bold=True,color=WHITE,name='Calibri',size=13)
-        c.fill=PatternFill('solid',start_color=NAVY);c.alignment=Alignment(horizontal='left',vertical='center')
+        c.font=Font(bold=True,color=XWHITE,name='Calibri',size=13)
+        c.fill=PatternFill('solid',start_color=XNAVY);c.alignment=Alignment(horizontal='left',vertical='center')
         c.border=brd();ws_comp.row_dimensions[1].height=26
-        xh(ws_comp,2,1,'',NAVY_MID);xh(ws_comp,2,2,'Customer Name',NAVY_MID)
+        xh(ws_comp,2,1,'',XNAVY_MID);xh(ws_comp,2,2,'Customer Name',XNAVY_MID)
         col=3
         for t in inv_comp:
             ws_comp.merge_cells(start_row=2,start_column=col,end_row=2,end_column=col+2)
-            xh(ws_comp,2,col,t,NAVY_MID);col+=3
+            xh(ws_comp,2,col,t,XNAVY_MID);col+=3
         ws_comp.merge_cells(start_row=2,start_column=col,end_row=2,end_column=col+2)
-        xh(ws_comp,2,col,'Grand Total',NAVY)
-        xh(ws_comp,3,1,'',NAVY_LIGHT);xh(ws_comp,3,2,'',NAVY_LIGHT)
+        xh(ws_comp,2,col,'Grand Total',XNAVY)
+        xh(ws_comp,3,1,'',XNAVY_LIGHT);xh(ws_comp,3,2,'',XNAVY_LIGHT)
         col=3
         for t in inv_comp:
-            xh(ws_comp,3,col,'WK Ant.',NAVY_LIGHT);xh(ws_comp,3,col+1,wk_label,NAVY_LIGHT);xh(ws_comp,3,col+2,'Diff',NAVY_LIGHT);col+=3
-        xh(ws_comp,3,col,'WK Ant.',NAVY);xh(ws_comp,3,col+1,wk_label,NAVY);xh(ws_comp,3,col+2,'Diff',NAVY)
+            xh(ws_comp,3,col,'WK Ant.',XNAVY_LIGHT);xh(ws_comp,3,col+1,wk_label,XNAVY_LIGHT);xh(ws_comp,3,col+2,'Diff',XNAVY_LIGHT);col+=3
+        xh(ws_comp,3,col,'WK Ant.',XNAVY);xh(ws_comp,3,col+1,wk_label,XNAVY);xh(ws_comp,3,col+2,'Diff',XNAVY)
         row=4;tot12={t:0 for t in inv_comp};tot13={t:0 for t in inv_comp}
         for i,cli in enumerate(all_clients):
             w12=wk_prev.get(cli,{t:0 for t in inv_comp})
             w13={t:int(wk13_p.loc[cli,t]) if cli in wk13_p.index and t in wk13_p.columns else 0 for t in inv_comp}
-            fill=NAVY_ALT if i%2==0 else None
+            fill=XNAVY_ALT if i%2==0 else None
             ws_comp.cell(row=row,column=1,value='').border=brd()
             xd(ws_comp,row,2,cli,bg=fill,ha='left')
             col=3;gt12=gt13=0
@@ -584,14 +584,14 @@ def build_excel_tlp(df,wk_prev=None,wk_label='WK13'):
             xd(ws_comp,row,col+1,gt13 if gt13 else None,bg=fill,b=True)
             xdf(ws_comp,row,col+2,(gt13-gt12) if gt13-gt12!=0 else None,bg=fill);row+=1
         ws_comp.merge_cells(start_row=row,start_column=1,end_row=row,end_column=2)
-        xh(ws_comp,row,1,'Grand Total',GRAND);col=3;ggt12=ggt13=0
+        xh(ws_comp,row,1,'Grand Total',XGRAND);col=3;ggt12=ggt13=0
         for t in inv_comp:
-            xh(ws_comp,row,col,tot12[t] if tot12[t] else None,GRAND)
-            xh(ws_comp,row,col+1,tot13[t] if tot13[t] else None,GRAND)
-            xdf(ws_comp,row,col+2,(tot13[t]-tot12[t]) if tot13[t]-tot12[t]!=0 else None,bg=GRAND,hmode=True)
+            xh(ws_comp,row,col,tot12[t] if tot12[t] else None,XGRAND)
+            xh(ws_comp,row,col+1,tot13[t] if tot13[t] else None,XGRAND)
+            xdf(ws_comp,row,col+2,(tot13[t]-tot12[t]) if tot13[t]-tot12[t]!=0 else None,bg=XGRAND,hmode=True)
             ggt12+=tot12[t];ggt13+=tot13[t];col+=3
-        xh(ws_comp,row,col,ggt12,GRAND);xh(ws_comp,row,col+1,ggt13,GRAND)
-        xdf(ws_comp,row,col+2,ggt13-ggt12,bg=GRAND,hmode=True)
+        xh(ws_comp,row,col,ggt12,XGRAND);xh(ws_comp,row,col+1,ggt13,XGRAND)
+        xdf(ws_comp,row,col+2,ggt13-ggt12,bg=XGRAND,hmode=True)
         ws_comp.column_dimensions['A'].width=5;ws_comp.column_dimensions['B'].width=22
         col=3
         for _ in inv_comp:
@@ -640,20 +640,30 @@ def parse_prev_hn(df_raw):
     try:
         clas_map = {'Regulars':'Regular','VMI':'VMI','excess':'Exceso',
                     'Irregulars':'Irregulares','Obsolete':'Obsoleto','Liability':'Liability',
-                    'Regular Wip':'Wip'}
+                    'Regular Wip':'Regular Wip'}
         result = {}
-        for i in range(38, min(52, len(df_raw))):
+        # Find the last week column — scan row 38 for week labels, pick rightmost
+        row38 = df_raw.iloc[38] if len(df_raw) > 38 else None
+        last_wk_col = None
+        if row38 is not None:
+            for ci in range(len(row38)-1, -1, -1):
+                cell = str(row38.iloc[ci]).strip()
+                if cell.upper().startswith('WK') or (cell.isdigit() and len(cell)<=2):
+                    last_wk_col = ci
+                    break
+        # Default to col 7 if not found
+        if last_wk_col is None: last_wk_col = 7
+        val_col = last_wk_col + 1
+        for i in range(39, min(52, len(df_raw))):
             row = df_raw.iloc[i]
-            for col_idx in [1, 5, 7]:
-                if col_idx >= len(row): continue
-                clas_raw = str(row.iloc[col_idx]).strip() if pd.notna(row.iloc[col_idx]) else ''
-                if col_idx+1 >= len(row): continue
-                val_raw = str(row.iloc[col_idx+1]).strip() if pd.notna(row.iloc[col_idx+1]) else ''
-                if clas_raw in clas_map and val_raw not in ['nan','-','','NaN']:
-                    try:
-                        val = int(float(val_raw.replace(',','')))
-                        result[clas_map[clas_raw]] = result.get(clas_map[clas_raw], 0) + val
-                    except: pass
+            if val_col >= len(row): continue
+            clas_raw = str(row.iloc[last_wk_col]).strip() if pd.notna(row.iloc[last_wk_col]) else ''
+            val_raw  = str(row.iloc[val_col]).strip() if pd.notna(row.iloc[val_col]) else ''
+            if clas_raw in clas_map and val_raw not in ['nan','-','','NaN']:
+                try:
+                    val = int(float(val_raw.replace(',','')))
+                    result[clas_map[clas_raw]] = val
+                except: pass
         return result if result else None
     except:
         return None
@@ -691,7 +701,7 @@ import plotly.graph_objects as go
 import re as _re
 
 # ── Color constants ──
-NAVY = '#162447'
+NAVY_UI = '#162447'
 NAVY2 = '#1E3A6E'
 LAVENDER = '#EEF2F7'
 INDIGO = '#4F46E5'
@@ -708,7 +718,7 @@ CLAS_COLORS_TLP = {
 }
 
 HN_FG_CLAS  = ['Regular','VMI','Irregulares','Exceso','Obsoleto']
-HN_WIP_CLAS = ['Wip']
+HN_WIP_CLAS = ['Regular Wip']
 TLP_FG_CLAS = ['Sin Clasificacion','Irregulares','Exceso Blanks','Exceso Printed']
 TLP_WIP_CLAS= ['Wip']
 
@@ -718,12 +728,12 @@ def filter_df(df, view, fg_clas, wip_clas):
             return df[df['Type']=='Finished Goods']
         return df[df['Clasificacion'].isin(fg_clas)]
     if view == 'wip':
-        if 'Type' in df.columns and df['Type'].notna().any():
+        if 'Type' in df.columns and (df['Type']=='Wip').any():
             return df[df['Type']=='Wip']
         return df[df['Clasificacion'].isin(wip_clas)]
     if 'Type' in df.columns and df['Type'].notna().any():
         return df[df['Type'].isin(['Finished Goods','Wip'])]
-    return df[df['Clasificacion'].isin(fg_clas + wip_clas)]
+    return df[df['Clasificacion'].isin(list(fg_clas) + list(wip_clas))]
 
 def fmt(n):
     n = int(n)
@@ -1174,7 +1184,7 @@ with tab_hn:
         df_h['Quantity'] = pd.to_numeric(df_h['Quantity'], errors='coerce').fillna(0)
         tot_h  = int(df_h['Quantity'].sum()); caj_h = len(df_h)
         fg_h   = int(df_h[df_h['Clasificacion'].isin(HN_FG_CLAS)]['Quantity'].sum())
-        wip_h  = int(df_h[df_h['Clasificacion'].isin(HN_WIP_CLAS)]['Quantity'].sum())
+        wip_h  = int(df_h[df_h['Type']=='Wip']['Quantity'].sum()) if 'Type' in df_h.columns else int(df_h[df_h['Clasificacion'].isin(HN_WIP_CLAS)]['Quantity'].sum())
         irr_h  = int(df_h[df_h['Clasificacion']=='Irregulares']['Quantity'].sum())
         crit_h = int(df_h[df_h['Clasificacion'].isin(['Obsoleto','Exceso'])]['Quantity'].sum())
 
