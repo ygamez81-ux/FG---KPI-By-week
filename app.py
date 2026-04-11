@@ -1172,11 +1172,11 @@ with tab_hn:
         view_h = st.radio("", ["Todo","Finished Goods","Wip"], horizontal=True, key="hn_view", label_visibility="collapsed")
         df_h = filter_df(r_hn, vmap2[view_h], HN_FG_CLAS, HN_WIP_CLAS).copy()
         df_h['Quantity'] = pd.to_numeric(df_h['Quantity'], errors='coerce').fillna(0)
-        tot_h = int(df_h['Quantity'].sum()); caj_h = len(df_h)
-        fg_h  = int(r_hn[r_hn['Type']=='Finished Goods']['Quantity'].sum()) if 'Type' in r_hn.columns else 0
-        wip_h = int(r_hn[r_hn['Type']=='Wip']['Quantity'].sum()) if 'Type' in r_hn.columns else 0
-        irr_h = int(df_h[df_h['Clasificacion']=='Irregulares']['Quantity'].sum())
-        crit_h= int(df_h[df_h['Clasificacion'].isin(['Obsoleto','Exceso'])]['Quantity'].sum())
+        tot_h  = int(df_h['Quantity'].sum()); caj_h = len(df_h)
+        fg_h   = int(df_h[df_h['Clasificacion'].isin(HN_FG_CLAS)]['Quantity'].sum())
+        wip_h  = int(df_h[df_h['Clasificacion'].isin(HN_WIP_CLAS)]['Quantity'].sum())
+        irr_h  = int(df_h[df_h['Clasificacion']=='Irregulares']['Quantity'].sum())
+        crit_h = int(df_h[df_h['Clasificacion'].isin(['Obsoleto','Exceso'])]['Quantity'].sum())
 
         k1,k2,k3,k4,k5 = st.columns(5)
         with k1: st.markdown(kpi_card("Total unidades", fmtk(tot_h), f"{caj_h:,} cajas"), unsafe_allow_html=True)
@@ -1212,11 +1212,11 @@ with tab_tlp:
         view_t = st.radio("", ["Todo","Finished Goods","Wip"], horizontal=True, key="tlp_view", label_visibility="collapsed")
         df_t = filter_df(r_tlp, vmap2[view_t], TLP_FG_CLAS, TLP_WIP_CLAS).copy()
         df_t['Quantity'] = pd.to_numeric(df_t['Quantity'], errors='coerce').fillna(0)
-        tot_t = int(df_t['Quantity'].sum()); caj_t = len(df_t)
-        fg_t  = int(r_tlp[r_tlp['Clasificacion']!='Wip']['Quantity'].sum())
-        wip_t = int(r_tlp[r_tlp['Clasificacion']=='Wip']['Quantity'].sum())
-        irr_t = int(df_t[df_t['Clasificacion']=='Irregulares']['Quantity'].sum())
-        crit_t= int(df_t[df_t['Clasificacion'].isin(['Exceso Blanks','Exceso Printed'])]['Quantity'].sum())
+        tot_t  = int(df_t['Quantity'].sum()); caj_t = len(df_t)
+        fg_t   = int(df_t[df_t['Clasificacion'].isin(TLP_FG_CLAS)]['Quantity'].sum())
+        wip_t  = int(df_t[df_t['Clasificacion'].isin(TLP_WIP_CLAS)]['Quantity'].sum())
+        irr_t  = int(df_t[df_t['Clasificacion']=='Irregulares']['Quantity'].sum())
+        crit_t = int(df_t[df_t['Clasificacion'].isin(['Exceso Blanks','Exceso Printed'])]['Quantity'].sum())
 
         k1,k2,k3,k4,k5 = st.columns(5)
         with k1: st.markdown(kpi_card("Total unidades", fmtk(tot_t), f"{caj_t:,} cajas"), unsafe_allow_html=True)
