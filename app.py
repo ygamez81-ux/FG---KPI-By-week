@@ -642,22 +642,21 @@ def parse_prev_hn(df_raw):
                     'Irregulars':'Irregulares','Obsolete':'Obsoleto','Liability':'Liability',
                     'Regular Wip':'Regular Wip'}
         result = {}
-        # Find the last week column — scan row 38 for week labels, pick rightmost
+        # Find the last week column in row 38, then data is at (wk_col-1, wk_col)
         row38 = df_raw.iloc[38] if len(df_raw) > 38 else None
-        last_wk_col = None
+        val_col = None
         if row38 is not None:
             for ci in range(len(row38)-1, -1, -1):
                 cell = str(row38.iloc[ci]).strip()
-                if cell.upper().startswith('WK') or (cell.isdigit() and len(cell)<=2):
-                    last_wk_col = ci
+                if cell.upper().startswith('WK') or (cell.upper().startswith('WK') and cell[2:].isdigit()):
+                    val_col = ci  # WK label col = value col (data label is col-1)
                     break
-        # Default to col 7 if not found
-        if last_wk_col is None: last_wk_col = 7
-        val_col = last_wk_col + 1
+        if val_col is None: val_col = 8
+        lbl_col = val_col - 1  # classification label is one col before value
         for i in range(39, min(52, len(df_raw))):
             row = df_raw.iloc[i]
-            if val_col >= len(row): continue
-            clas_raw = str(row.iloc[last_wk_col]).strip() if pd.notna(row.iloc[last_wk_col]) else ''
+            if val_col >= len(row) or lbl_col < 0: continue
+            clas_raw = str(row.iloc[lbl_col]).strip() if pd.notna(row.iloc[lbl_col]) else ''
             val_raw  = str(row.iloc[val_col]).strip() if pd.notna(row.iloc[val_col]) else ''
             if clas_raw in clas_map and val_raw not in ['nan','-','','NaN']:
                 try:
@@ -1263,7 +1262,18 @@ with tab_comp:
         # Get last 4 weeks from hist
         all_wks = sorted(hist.keys(), key=wk_sort)
         last4   = all_wks[-4:] if len(all_wks) >= 4 else all_wks
-        weeks_data = [hist[w] for w in last4]
+        # Filter hist data by view
+        def filter_hist(d, view, fg_clas, wip_clas):
+            if view == 'fg':
+                return {k:v for k,v in d.items() if k in fg_clas}
+            if view == 'wip':
+                return {k:v for k,v in d.items() if k in wip_clas}
+            return d
+
+        fg_c  = HN_FG_CLAS  if bodega_key=='hn' else TLP_FG_CLAS
+        wip_c = HN_WIP_CLAS if bodega_key=='hn' else TLP_WIP_CLAS
+        vmap_c = {"Total":"all","Finished Goods":"fg","Wip":"wip"}
+        weeks_data = [filter_hist(hist[w], vmap_c[view_c], fg_c, wip_c) for w in last4]
         totals = [sum(d.values()) for d in weeks_data]
 
         if not last4:
