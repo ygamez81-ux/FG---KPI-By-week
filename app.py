@@ -6,6 +6,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
+# APP_VERSION = "v3-2025-04-11"
 st.set_page_config(page_title="Inventory Hub", page_icon="📦", layout="wide")
 
 st.markdown("""
@@ -664,7 +665,10 @@ def parse_prev_hn(df_raw):
                     result[clas_map[clas_raw]] = val
                 except: pass
         return result if result else None
-    except:
+    except Exception as parse_err:
+        import traceback
+        print(f"parse_prev_hn ERROR: {parse_err}")
+        print(traceback.format_exc())
         return None
 
 def parse_prev_tlp(df_raw):
@@ -974,6 +978,7 @@ def render_analysis(r_cur, prev_df, prev_clas_dict, clas_colors, label):
 # ══════════════════════════════════════════
 with st.sidebar:
     st.markdown("## Inventory Hub")
+    st.caption("v3 — 2025-04-11")
     week_label = st.text_input("Semana", value="WK13", key="week_input")
     st.markdown(f"**Semana: {week_label}**")
     st.markdown("---")
@@ -1024,6 +1029,7 @@ with st.sidebar:
                 _wkn = week_label.replace('WK','').replace('wk','').strip()
                 prev_wk_h = f"WK{int(_wkn)-1}" if _wkn.isdigit() else "WK Ant."
                 st.session_state['hist_hn'][prev_wk_h] = parsed if parsed else {}
+                st.sidebar.caption(f"WK12 saved: {sum((parsed or {}).values()):,} uds ({len(parsed or {})} clas.)")
             else:
                 prev_hn_file.seek(0)
                 df_prev_h = pd.read_csv(prev_hn_file, low_memory=False)
@@ -1078,6 +1084,9 @@ with st.sidebar:
             st.session_state['tlp_prev_clas'] = None
 
         st.success("✓ Listo!")
+        # Debug: show what got saved
+        _h = st.session_state.get('hist_hn',{})
+        st.caption(f"✓ hist_hn: {list(_h.keys())} | WK12={dict(list(_h.get('WK12',{}).items())[:2])}")
 
 # ══ Session state ══
 r_hn   = st.session_state.get('hn_r')
@@ -1583,6 +1592,7 @@ with tab_dl:
     if r_hn is None and r_tlp is None:
         st.info("Clasifica primero los inventarios para poder descargar.")
     else:
+      try:
         c1, c2 = st.columns(2)
         with c1:
             if r_hn is not None:
@@ -1638,3 +1648,5 @@ with tab_dl:
                 st.download_button("CSV TLP completo", data=b4.getvalue(),
                     file_name=f"data_TLP_{week_label}.csv", mime="text/csv",
                     use_container_width=True)
+      except Exception as e_dl:
+          st.error(f'Error en Descargas: {e_dl}')
