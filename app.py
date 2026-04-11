@@ -648,7 +648,7 @@ def parse_prev_hn(df_raw):
         if row38 is not None:
             for ci in range(len(row38)-1, -1, -1):
                 cell = str(row38.iloc[ci]).strip()
-                if cell.upper().startswith('WK') or (cell.upper().startswith('WK') and cell[2:].isdigit()):
+                if cell.upper().startswith('WK') and len(cell) > 2 and cell[2:].isdigit():
                     val_col = ci  # WK label col = value col (data label is col-1)
                     break
         if val_col is None: val_col = 8
@@ -1390,21 +1390,39 @@ with tab_comp:
         else: render_comp_4wk('tlp', r_tlp, st.session_state.get('hist_tlp',{}), CLAS_COLORS_TLP, SLATE, 'TLP', week_label)
 
     with comp_both:
-        all_wks_b = sorted(set(list(hist_hn.keys())+list(hist_tlp.keys())), key=wk_sort)
+        h_hn  = st.session_state.get('hist_hn',{})
+        h_tlp = st.session_state.get('hist_tlp',{})
+        all_wks_b = sorted(set(list(h_hn.keys())+list(h_tlp.keys())), key=wk_sort)
         if not all_wks_b:
             st.info("Clasifica ambas bodegas para ver el comparativo.")
         else:
-            k1,k2 = st.columns(2)
-            hn_tots  = [sum(hist_hn.get(w,{}).values())  for w in all_wks_b]
-            tlp_tots = [sum(hist_tlp.get(w,{}).values()) for w in all_wks_b]
-            with k1: st.markdown(kpi_card("Honduras — actual", fmtk(hn_tots[-1]) if hn_tots else "—", week_label, INDIGO), unsafe_allow_html=True)
-            with k2: st.markdown(kpi_card("TLP — actual", fmtk(tlp_tots[-1]) if tlp_tots else "—", week_label, SLATE,'#64748B'), unsafe_allow_html=True)
+            view_b = st.radio("Ver:", ["Todo","Finished Goods","Wip"], horizontal=True, key="comp_both_view")
+            vmap_b = {"Todo":"all","Finished Goods":"fg","Wip":"wip"}
+            vb = vmap_b.get(view_b,"all")
+
+            def filt_d(d, v, fg, wip):
+                if not d: return {}
+                if v=='fg':  return {k:val for k,val in d.items() if k in fg}
+                if v=='wip': return {k:val for k,val in d.items() if k in wip}
+                return d
+
+            hn_tots  = [sum(filt_d(h_hn.get(w,{}),  vb, HN_FG_CLAS,  HN_WIP_CLAS).values())  for w in all_wks_b]
+            tlp_tots = [sum(filt_d(h_tlp.get(w,{}), vb, TLP_FG_CLAS, TLP_WIP_CLAS).values()) for w in all_wks_b]
+
+            k1,k2,k3,k4 = st.columns(4)
+            with k1: st.markdown(kpi_card("Honduras actual", fmtk(hn_tots[-1]) if hn_tots else "—", week_label, INDIGO), unsafe_allow_html=True)
+            with k2: st.markdown(kpi_card("TLP actual", fmtk(tlp_tots[-1]) if tlp_tots else "—", week_label, SLATE,'#64748B'), unsafe_allow_html=True)
+            if len(hn_tots)>1:
+                dh = hn_tots[-1]-hn_tots[-2]; dt = tlp_tots[-1]-tlp_tots[-2]
+                with k3: st.markdown(kpi_card("Var. HN sem.", f"{'+' if dh>=0 else ''}{dh:,}", f"{dh/hn_tots[-2]*100:+.1f}%" if hn_tots[-2] else "", '#10B981' if dh>=0 else '#EF4444','#10B981' if dh>=0 else '#EF4444'), unsafe_allow_html=True)
+                with k4: st.markdown(kpi_card("Var. TLP sem.", f"{'+' if dt>=0 else ''}{dt:,}", f"{dt/tlp_tots[-2]*100:+.1f}%" if tlp_tots[-2] else "", '#10B981' if dt>=0 else '#EF4444','#10B981' if dt>=0 else '#EF4444'), unsafe_allow_html=True)
+
             st.markdown("<br>", unsafe_allow_html=True)
             fig_b = go.Figure()
-            if hn_tots:
+            if any(v>0 for v in hn_tots):
                 fig_b.add_trace(go.Scatter(x=all_wks_b, y=hn_tots, name='Honduras', mode='lines+markers',
                     line=dict(color=INDIGO, width=2.5), marker=dict(size=7), hovertemplate='%{x}: %{y:,}<extra>Honduras</extra>'))
-            if tlp_tots:
+            if any(v>0 for v in tlp_tots):
                 fig_b.add_trace(go.Scatter(x=all_wks_b, y=tlp_tots, name='TLP', mode='lines+markers',
                     line=dict(color=SLATE, width=2.5), marker=dict(size=7), hovertemplate='%{x}: %{y:,}<extra>TLP</extra>'))
             fig_b.update_layout(height=260, margin=dict(t=10,b=10,l=10,r=10),
@@ -1413,16 +1431,18 @@ with tab_comp:
                 xaxis=dict(tickfont=dict(size=11), showgrid=False),
                 yaxis=dict(tickfont=dict(size=10), tickformat=',', gridcolor='rgba(0,0,0,0.05)'))
             st.plotly_chart(fig_b, use_container_width=True)
+
             rows_b = []
             for i,w in enumerate(all_wks_b):
-                hn_t  = int(sum(hist_hn.get(w,{}).values()))
-                tlp_t = int(sum(hist_tlp.get(w,{}).values()))
-                row = {'Semana':w, 'Honduras':hn_t, 'TLP':tlp_t, 'Total':hn_t+tlp_t}
+                hn_t  = int(sum(filt_d(h_hn.get(w,{}),  vb, HN_FG_CLAS,  HN_WIP_CLAS).values()))
+                tlp_t = int(sum(filt_d(h_tlp.get(w,{}), vb, TLP_FG_CLAS, TLP_WIP_CLAS).values()))
+                row = {'Semana':w, 'Honduras':f"{hn_t:,}", 'TLP':f"{tlp_t:,}", 'Total':f"{hn_t+tlp_t:,}"}
                 if i > 0:
-                    prev = rows_b[-1]
-                    row['▲▼ HN']  = f"{'+' if hn_t-prev['Honduras']>=0 else ''}{hn_t-prev['Honduras']:,}"
-                    row['▲▼ TLP'] = f"{'+' if tlp_t-prev['TLP']>=0 else ''}{tlp_t-prev['TLP']:,}"
-                    row['▲▼ Tot'] = f"{'+' if (hn_t+tlp_t)-prev['Total']>=0 else ''}{(hn_t+tlp_t)-prev['Total']:,}"
+                    prev_hn  = int(sum(filt_d(h_hn.get(all_wks_b[i-1],{}),  vb, HN_FG_CLAS,  HN_WIP_CLAS).values()))
+                    prev_tlp = int(sum(filt_d(h_tlp.get(all_wks_b[i-1],{}), vb, TLP_FG_CLAS, TLP_WIP_CLAS).values()))
+                    row['▲▼ HN']  = f"{'+' if hn_t-prev_hn>=0 else ''}{hn_t-prev_hn:,}"
+                    row['▲▼ TLP'] = f"{'+' if tlp_t-prev_tlp>=0 else ''}{tlp_t-prev_tlp:,}"
+                    row['▲▼ Tot'] = f"{'+' if (hn_t+tlp_t)-(prev_hn+prev_tlp)>=0 else ''}{(hn_t+tlp_t)-(prev_hn+prev_tlp):,}"
                 else:
                     row['▲▼ HN'] = '—'; row['▲▼ TLP'] = '—'; row['▲▼ Tot'] = '—'
                 rows_b.append(row)
@@ -1482,23 +1502,23 @@ with tab_hist:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Filter buttons
-        active_clas = {c:True for c in all_clas+['Total']}
-        filter_html = f'<div style="display:flex;align-items:center;gap:5px;margin-bottom:12px;flex-wrap:nowrap;overflow-x:auto;">'
-        filter_html += f'<span style="font-size:10px;color:#818CF8;white-space:nowrap;margin-right:2px;">Ver:</span>'
-        btn_colors = {'Total':'#162447', **clas_colors}
-        for c in ['Total']+all_clas:
-            col_c = btn_colors.get(c,'#94A3B8')
-            filter_html += f'<span style="padding:3px 8px;border-radius:20px;font-size:10px;border:1px solid transparent;background:{col_c};color:#fff;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;border-radius:50%;background:#fff;flex-shrink:0;"></span>{c}</span>'
-        filter_html += '</div>'
-        st.markdown(filter_html, unsafe_allow_html=True)
+        # Filter using Streamlit multiselect - actually interactive
+        selected = st.multiselect(
+            "Ver clasificaciones:",
+            options=['Total'] + all_clas,
+            default=['Total'] + all_clas,
+            key=f"hist_{label}_filter"
+        )
+        if not selected: selected = ['Total'] + all_clas
 
-        # Chart
+        # Chart - only show selected
         fig_h = go.Figure()
-        fig_h.add_trace(go.Scatter(x=wks_h, y=tots_h, name='Total', mode='lines+markers',
-            line=dict(color='#162447', width=2.5, dash='dot'), marker=dict(size=4),
-            hovertemplate='%{x}: %{y:,}<extra>Total</extra>'))
+        if 'Total' in selected:
+            fig_h.add_trace(go.Scatter(x=wks_h, y=tots_h, name='Total', mode='lines+markers',
+                line=dict(color='#162447', width=2.5, dash='dot'), marker=dict(size=4),
+                hovertemplate='%{x}: %{y:,}<extra>Total</extra>'))
         for c in all_clas:
+            if c not in selected: continue
             vals = [int(hist[w].get(c,0)) for w in wks_h]
             color = clas_colors.get(c,'#94A3B8')
             fig_h.add_trace(go.Scatter(x=wks_h, y=vals, name=c, mode='lines+markers',
