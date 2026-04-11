@@ -1023,7 +1023,7 @@ with st.sidebar:
                 if 'hist_hn' not in st.session_state: st.session_state['hist_hn'] = {}
                 _wkn = week_label.replace('WK','').replace('wk','').strip()
                 prev_wk_h = f"WK{int(_wkn)-1}" if _wkn.isdigit() else "WK Ant."
-                st.session_state['hist_hn'][prev_wk_h] = parsed or {}
+                st.session_state['hist_hn'][prev_wk_h] = parsed if parsed else {}
             else:
                 prev_hn_file.seek(0)
                 df_prev_h = pd.read_csv(prev_hn_file, low_memory=False)
@@ -1383,7 +1383,10 @@ with tab_comp:
 
     with comp_hn:
         if r_hn is None: st.info("Clasifica Honduras primero.")
-        else: render_comp_4wk('hn', r_hn, st.session_state.get('hist_hn',{}), CLAS_COLORS_HN, INDIGO, 'Honduras', week_label)
+        else:
+            _dbg_hist = st.session_state.get('hist_hn',{})
+            st.caption(f"Debug hist_hn keys: {list(_dbg_hist.keys())} | WK12 data: {dict(list(_dbg_hist.get('WK12',{}).items())[:3])}")
+            render_comp_4wk('hn', r_hn, _dbg_hist, CLAS_COLORS_HN, INDIGO, 'Honduras', week_label)
 
     with comp_tlp:
         if r_tlp is None: st.info("Clasifica TLP primero.")
@@ -1585,7 +1588,7 @@ with tab_dl:
             if r_hn is not None:
                 st.markdown(f"<div style='font-size:11px;font-weight:500;color:{INDIGO};margin-bottom:8px;'>Honduras — {week_label}</div>", unsafe_allow_html=True)
                 wk_prev_hn = None
-                if prev_hn is not None and 'Clasificacion' in prev_hn.columns and 'Customer Name' in prev_hn.columns:
+                if prev_hn is not None and hasattr(prev_hn, 'columns') and 'Clasificacion' in prev_hn.columns and 'Customer Name' in prev_hn.columns:
                     prev_hn4 = prev_hn.copy()
                     prev_hn4['Quantity'] = pd.to_numeric(prev_hn4['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0)
                     inv_types = ['Regulars','VMI','Excess','Irregulars','Obsolete','Liability']
@@ -1593,34 +1596,44 @@ with tab_dl:
                     pfg = prev_hn4[prev_hn4['Type']=='Finished Goods'] if 'Type' in prev_hn4.columns else prev_hn4
                     pp = pfg.pivot_table(index='Customer Name',columns='Clas_Col',values='Quantity',aggfunc='sum',fill_value=0)
                     wk_prev_hn = {cli:{t:int(pp.loc[cli,t]) if cli in pp.index and t in pp.columns else 0 for t in inv_types} for cli in ACTIVOS+INACTIVOS}
-                with st.spinner("Generando Excel..."):
-                    buf_hn = build_excel_hn(r_hn, wk_prev_hn, week_label)
-                st.download_button(f"Excel Honduras {week_label}", data=buf_hn,
+                try:
+                    with st.spinner("Generando Excel..."):
+                        buf_hn = build_excel_hn(r_hn, wk_prev_hn, week_label)
+                    st.download_button(f"Excel Honduras {week_label}", data=buf_hn,
                     file_name=f"inventario_honduras_{week_label}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True)
-                b2 = io.StringIO(); r_hn.to_csv(b2, index=False)
-                st.download_button("CSV Honduras completo", data=b2.getvalue(),
-                    file_name=f"data_honduras_{week_label}.csv", mime="text/csv",
-                    use_container_width=True)
+                    b2 = io.StringIO(); r_hn.to_csv(b2, index=False)
+                    st.download_button("CSV Honduras completo", data=b2.getvalue(),
+                        file_name=f"data_honduras_{week_label}.csv", mime="text/csv",
+                        use_container_width=True)
+                except Exception as e:
+                    st.error(f"Error generando Excel Honduras: {str(e)}")
+                    b2 = io.StringIO(); r_hn.to_csv(b2, index=False)
+                    st.download_button("CSV Honduras completo", data=b2.getvalue(),
+                        file_name=f"data_honduras_{week_label}.csv", mime="text/csv",
+                        use_container_width=True)
 
         with c2:
             if r_tlp is not None:
                 st.markdown(f"<div style='font-size:11px;font-weight:500;color:{INDIGO};margin-bottom:8px;'>TLP — {week_label}</div>", unsafe_allow_html=True)
                 wk_prev_tlp = None
-                if prev_tlp is not None and 'Clasificacion' in prev_tlp.columns and 'Customer Name' in prev_tlp.columns:
+                if prev_tlp is not None and hasattr(prev_tlp,'columns') and 'Clasificacion' in prev_tlp.columns and 'Customer Name' in prev_tlp.columns:
                     prev_tlp4 = prev_tlp.copy()
                     prev_tlp4['Quantity'] = pd.to_numeric(prev_tlp4['Quantity'].astype(str).str.replace(',',''), errors='coerce').fillna(0)
                     inv_comp = ['TLP Irregulars','TLP Printed Excess','TLP sin clasificacion','TLP Blanks Excess']
                     pp2 = prev_tlp4.pivot_table(index='Customer Name',columns='Clasificacion',values='Quantity',aggfunc='sum',fill_value=0)
                     all_tlp_c = list(set(TLP_ORDER+list(pp2.index)))
                     wk_prev_tlp = {cli:{t:int(pp2.loc[cli,t]) if cli in pp2.index and t in pp2.columns else 0 for t in inv_comp} for cli in all_tlp_c}
-                with st.spinner("Generando Excel..."):
-                    buf_tlp = build_excel_tlp(r_tlp, wk_prev_tlp, week_label)
-                st.download_button(f"Excel TLP {week_label}", data=buf_tlp,
-                    file_name=f"inventario_TLP_{week_label}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True)
+                try:
+                    with st.spinner("Generando Excel..."):
+                        buf_tlp = build_excel_tlp(r_tlp, wk_prev_tlp, week_label)
+                    st.download_button(f"Excel TLP {week_label}", data=buf_tlp,
+                        file_name=f"inventario_TLP_{week_label}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True)
+                except Exception as e:
+                    st.error(f"Error generando Excel TLP: {str(e)}")
                 b4 = io.StringIO(); r_tlp.to_csv(b4, index=False)
                 st.download_button("CSV TLP completo", data=b4.getvalue(),
                     file_name=f"data_TLP_{week_label}.csv", mime="text/csv",
