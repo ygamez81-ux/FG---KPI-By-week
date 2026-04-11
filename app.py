@@ -1269,23 +1269,23 @@ with tab_comp:
         # Get last 4 weeks from hist
         all_wks = sorted(hist.keys(), key=wk_sort)
         last4   = all_wks[-4:] if len(all_wks) >= 4 else all_wks
-        # Filter hist data by view
-        def filter_hist(d, view, fg_clas, wip_clas):
-            if view == 'fg':
-                return {k:v for k,v in d.items() if k in fg_clas}
-            if view == 'wip':
-                return {k:v for k,v in d.items() if k in wip_clas}
-            return d
-
-        fg_c  = HN_FG_CLAS  if bodega_key=='hn' else TLP_FG_CLAS
-        wip_c = HN_WIP_CLAS if bodega_key=='hn' else TLP_WIP_CLAS
-        vmap_c = {"Total":"all","Finished Goods":"fg","Wip":"wip"}
-        weeks_data = [filter_hist(hist.get(w, {}), vmap_c[view_c], fg_c, wip_c) for w in last4]
-        totals = [sum(d.values()) for d in weeks_data]
 
         if not last4:
             st.info(f"Clasifica {label} y sube semanas anteriores para ver el comparativo.")
             return
+
+        def filter_hist(d, view, fg_clas, wip_clas):
+            if not d: return {}
+            if view == 'fg':  return {k:v for k,v in d.items() if k in fg_clas}
+            if view == 'wip': return {k:v for k,v in d.items() if k in wip_clas}
+            return d
+
+        fg_c   = HN_FG_CLAS  if bodega_key=='hn' else TLP_FG_CLAS
+        wip_c  = HN_WIP_CLAS if bodega_key=='hn' else TLP_WIP_CLAS
+        vmap_c = {"Todo":"all","Finished Goods":"fg","Wip":"wip"}
+        weeks_data = [filter_hist(hist.get(w,{}), vmap_c.get(view_c,"all"), fg_c, wip_c) for w in last4]
+        totals     = [sum(d.values()) for d in weeks_data]
+
 
         # Badges
         html_b = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'
