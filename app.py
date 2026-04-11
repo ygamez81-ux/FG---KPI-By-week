@@ -1280,7 +1280,7 @@ with tab_comp:
         fg_c  = HN_FG_CLAS  if bodega_key=='hn' else TLP_FG_CLAS
         wip_c = HN_WIP_CLAS if bodega_key=='hn' else TLP_WIP_CLAS
         vmap_c = {"Total":"all","Finished Goods":"fg","Wip":"wip"}
-        weeks_data = [filter_hist(hist[w], vmap_c[view_c], fg_c, wip_c) for w in last4]
+        weeks_data = [filter_hist(hist.get(w, {}), vmap_c[view_c], fg_c, wip_c) for w in last4]
         totals = [sum(d.values()) for d in weeks_data]
 
         if not last4:
