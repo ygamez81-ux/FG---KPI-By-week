@@ -641,22 +641,33 @@ def parse_prev_hn(df_raw):
     try:
         clas_map = {'Regulars':'Regular','VMI':'VMI','excess':'Exceso',
                     'Irregulars':'Irregulares','Obsolete':'Obsoleto','Liability':'Liability',
-                    'Regular Wip':'Regular Wip'}
+                    'Regular Wip':'Regular Wip','Wip':'Wip'}
         result = {}
-        # Find the last week column in row 38, then data is at (wk_col-1, wk_col)
-        row38 = df_raw.iloc[38] if len(df_raw) > 38 else None
+        nrows, ncols = df_raw.shape
+
+        # Step 1: Find the row containing week labels (WKnn)
+        wk_row_idx = None
         val_col = None
-        if row38 is not None:
-            for ci in range(len(row38)-1, -1, -1):
-                cell = str(row38.iloc[ci]).strip()
+        for ri in range(min(50, nrows)):
+            row = df_raw.iloc[ri]
+            for ci in range(ncols-1, -1, -1):
+                cell = str(row.iloc[ci]).strip()
                 if cell.upper().startswith('WK') and len(cell) > 2 and cell[2:].isdigit():
-                    val_col = ci  # WK label col = value col (data label is col-1)
+                    wk_row_idx = ri
+                    val_col = ci
                     break
-        if val_col is None: val_col = 8
-        lbl_col = val_col - 1  # classification label is one col before value
-        for i in range(39, min(52, len(df_raw))):
+            if wk_row_idx is not None:
+                break
+
+        if val_col is None:
+            return None
+
+        lbl_col = val_col - 1
+
+        # Step 2: Read data rows after the week label row
+        for i in range(wk_row_idx + 1, min(wk_row_idx + 20, nrows)):
             row = df_raw.iloc[i]
-            if val_col >= len(row) or lbl_col < 0: continue
+            if lbl_col < 0 or val_col >= ncols: continue
             clas_raw = str(row.iloc[lbl_col]).strip() if pd.notna(row.iloc[lbl_col]) else ''
             val_raw  = str(row.iloc[val_col]).strip() if pd.notna(row.iloc[val_col]) else ''
             if clas_raw in clas_map and val_raw not in ['nan','-','','NaN']:
@@ -664,6 +675,7 @@ def parse_prev_hn(df_raw):
                     val = int(float(val_raw.replace(',','')))
                     result[clas_map[clas_raw]] = val
                 except: pass
+
         return result if result else None
     except Exception as parse_err:
         import traceback
