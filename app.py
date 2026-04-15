@@ -639,48 +639,66 @@ import pandas as pd
 
 def parse_prev_hn(df_raw):
     try:
-        clas_map = {'Regulars':'Regular','VMI':'VMI','excess':'Exceso',
-                    'Irregulars':'Irregulares','Obsolete':'Obsoleto','Liability':'Liability',
-                    'Regular Wip':'Regular Wip','Wip':'Wip'}
-        result = {}
         nrows, ncols = df_raw.shape
 
-        # Step 1: Find the row containing week labels (WKnn)
-        wk_row_idx = None
-        val_col = None
+        # FORMAT 1: Pivot table with clients - has "Grand Total" row
+        # Row 1 has headers: Regulars, VMI, excess, Irregulars, Obsolete, Liability
+        # Last data row has "Grand Total" in col 0
+        for ri in range(nrows-1, -1, -1):
+            cell0 = str(df_raw.iloc[ri, 0]).strip().lower()
+            if 'grand total' in cell0 or 'total' in cell0:
+                # Found totals row - read headers from row 1
+                hdr_row = None
+                for hi in range(min(5, nrows)):
+                    row_h = df_raw.iloc[hi]
+                    cells = [str(c).strip() for c in row_h]
+                    if any(c in ['Regulars','VMI','excess','Irregulars','Obsolete','Liability'] for c in cells):
+                        hdr_row = hi; break
+                if hdr_row is None: break
+                clas_map = {'Regulars':'Regular','VMI':'VMI','excess':'Exceso',
+                            'Irregulars':'Irregulares','Obsolete':'Obsoleto','Liability':'Liability'}
+                headers = [str(df_raw.iloc[hdr_row, c]).strip() for c in range(ncols)]
+                result = {}
+                tot_row = df_raw.iloc[ri]
+                for ci, hdr in enumerate(headers):
+                    if hdr in clas_map:
+                        val_raw = str(tot_row.iloc[ci]).strip()
+                        if val_raw not in ['nan','','NaN','-']:
+                            try:
+                                result[clas_map[hdr]] = int(float(val_raw.replace(',','')))
+                            except: pass
+                if result: return result
+                break
+
+        # FORMAT 2: Wide pivot with WK columns (e.g. WK10, WK11, WK12 across columns)
+        wk_row_idx = None; val_col = None
         for ri in range(min(50, nrows)):
             row = df_raw.iloc[ri]
             for ci in range(ncols-1, -1, -1):
                 cell = str(row.iloc[ci]).strip()
                 if cell.upper().startswith('WK') and len(cell) > 2 and cell[2:].isdigit():
-                    wk_row_idx = ri
-                    val_col = ci
-                    break
-            if wk_row_idx is not None:
-                break
+                    wk_row_idx = ri; val_col = ci; break
+            if wk_row_idx is not None: break
 
-        if val_col is None:
-            return None
+        if val_col is not None:
+            lbl_col = val_col - 1
+            clas_map2 = {'Regulars':'Regular','VMI':'VMI','excess':'Exceso',
+                         'Irregulars':'Irregulares','Obsolete':'Obsoleto','Liability':'Liability',
+                         'Regular Wip':'Regular Wip'}
+            result2 = {}
+            for i in range(wk_row_idx+1, min(wk_row_idx+20, nrows)):
+                row = df_raw.iloc[i]
+                clas_raw = str(row.iloc[lbl_col]).strip() if pd.notna(row.iloc[lbl_col]) else ''
+                val_raw  = str(row.iloc[val_col]).strip() if pd.notna(row.iloc[val_col]) else ''
+                if clas_raw in clas_map2 and val_raw not in ['nan','-','','NaN']:
+                    try:
+                        result2[clas_map2[clas_raw]] = int(float(val_raw.replace(',','')))
+                    except: pass
+            if result2: return result2
 
-        lbl_col = val_col - 1
-
-        # Step 2: Read data rows after the week label row
-        for i in range(wk_row_idx + 1, min(wk_row_idx + 20, nrows)):
-            row = df_raw.iloc[i]
-            if lbl_col < 0 or val_col >= ncols: continue
-            clas_raw = str(row.iloc[lbl_col]).strip() if pd.notna(row.iloc[lbl_col]) else ''
-            val_raw  = str(row.iloc[val_col]).strip() if pd.notna(row.iloc[val_col]) else ''
-            if clas_raw in clas_map and val_raw not in ['nan','-','','NaN']:
-                try:
-                    val = int(float(val_raw.replace(',','')))
-                    result[clas_map[clas_raw]] = val
-                except: pass
-
-        return result if result else None
-    except Exception as parse_err:
-        import traceback
-        print(f"parse_prev_hn ERROR: {parse_err}")
-        print(traceback.format_exc())
+        return None
+    except Exception as e:
+        import traceback; print(f"parse_prev_hn ERROR: {e}\n{traceback.format_exc()}")
         return None
 
 def parse_prev_tlp(df_raw):
