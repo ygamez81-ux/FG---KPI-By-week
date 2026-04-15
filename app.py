@@ -1545,13 +1545,24 @@ with tab_hist:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Slider de rango de semanas
+        # Filtros en una fila — igual que FG/Wip
+        all_opts = ["Total"] + all_clas
+        selected = st.multiselect(
+            "Ver clasificaciones:",
+            options=all_opts,
+            default=all_opts,
+            key=f"hist_{label}_sel"
+        )
+        if not selected:
+            selected = all_opts
+
+        # Slider rango de semanas
         n = len(wks_all)
         if n > 1:
             wk_nums = [wk_sort(w) for w in wks_all]
-            min_wk = min(wk_nums); max_wk = max(wk_nums)
+            min_wk, max_wk = min(wk_nums), max(wk_nums)
             rng = st.slider(
-                "Rango de semanas:",
+                "Rango de semanas (WK):",
                 min_value=min_wk, max_value=max_wk,
                 value=(min_wk, max_wk),
                 key=f"hist_{label}_slider"
@@ -1561,47 +1572,19 @@ with tab_hist:
             wks_h = wks_all
         tots_h = [sum(hist[w].values()) for w in wks_h]
 
-        # Toggle buttons - clasificaciones
-        btn_colors = {"Total": "#162447", **clas_colors}
-        all_opts = ["Total"] + all_clas
-        st.markdown("<div style='font-size:11px;color:#818CF8;margin-bottom:6px;'>Clasificaciones:</div>", unsafe_allow_html=True)
-        cols_b = st.columns(len(all_opts))
-        active = {}
-        for idx_b, opt in enumerate(all_opts):
-            key_b = f"hist_{label}_{opt}_on"
-            if key_b not in st.session_state:
-                st.session_state[key_b] = True  # todos activos por defecto
-            is_on = st.session_state[key_b]
-            col_b = btn_colors.get(opt, "#94A3B8")
-            with cols_b[idx_b]:
-                # Mostrar badge de color encima del botón
-                st.markdown(
-                    f"<div style='text-align:center;margin-bottom:2px;'>"
-                    f"<span style='display:inline-block;padding:3px 10px;border-radius:20px;"
-                    f"font-size:11px;background:{''+col_b if is_on else '#EEF2F7'};"
-                    f"color:{'#fff' if is_on else '#94A3B8'};"
-                    f"border:1px solid {''+col_b if is_on else '#C7D2FE'};width:100%;box-sizing:border-box;'>"
-                    f"{'●' if is_on else '○'} {opt}</span></div>",
-                    unsafe_allow_html=True
-                )
-                # Botón invisible que captura el clic y alterna el estado
-                clicked = st.button("↕", key=f"hbtn_{label}_{opt}", use_container_width=True)
-                if clicked:
-                    st.session_state[key_b] = not is_on
-                    st.rerun()
-            active[opt] = st.session_state[key_b]
-
-        # Gráfica — solo líneas activas
+        # Gráfica — solo lo seleccionado
         fig_h = go.Figure()
-        if active.get("Total", True) and tots_h:
-            fig_h.add_trace(go.Scatter(x=wks_h, y=tots_h, name="Total", mode="lines+markers",
+        if "Total" in selected and tots_h:
+            fig_h.add_trace(go.Scatter(
+                x=wks_h, y=tots_h, name="Total", mode="lines+markers",
                 line=dict(color="#162447", width=2.5, dash="dot"), marker=dict(size=5),
                 hovertemplate="%{x}: %{y:,} uds<extra>Total</extra>"))
         for c in all_clas:
-            if not active.get(c, True): continue
+            if c not in selected: continue
             vals = [int(hist[w].get(c,0)) for w in wks_h]
             color = clas_colors.get(c, "#94A3B8")
-            fig_h.add_trace(go.Scatter(x=wks_h, y=vals, name=c, mode="lines+markers",
+            fig_h.add_trace(go.Scatter(
+                x=wks_h, y=vals, name=c, mode="lines+markers",
                 line=dict(color=color, width=1.5), marker=dict(size=4),
                 hovertemplate=f"%{{x}}: %{{y:,}}<extra>{c}</extra>"))
         fig_h.update_layout(
