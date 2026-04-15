@@ -1545,56 +1545,93 @@ with tab_hist:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Filtros en una fila — igual que FG/Wip
-        all_opts = ["Total"] + all_clas
-        selected = st.multiselect(
-            "Ver clasificaciones:",
-            options=all_opts,
-            default=all_opts,
-            key=f"hist_{label}_sel"
-        )
-        if not selected:
-            selected = all_opts
-
         # Slider rango de semanas
         n = len(wks_all)
         if n > 1:
             wk_nums = [wk_sort(w) for w in wks_all]
             min_wk, max_wk = min(wk_nums), max(wk_nums)
-            rng = st.slider(
-                "Rango de semanas (WK):",
-                min_value=min_wk, max_value=max_wk,
-                value=(min_wk, max_wk),
-                key=f"hist_{label}_slider"
-            )
+            rng = st.slider("Rango de semanas (WK):", min_value=min_wk, max_value=max_wk,
+                value=(min_wk, max_wk), key=f"hist_{label}_slider")
             wks_h = [w for w in wks_all if rng[0] <= wk_sort(w) <= rng[1]]
         else:
             wks_h = wks_all
         tots_h = [sum(hist[w].values()) for w in wks_h]
 
-        # Gráfica — solo lo seleccionado
+        # ── Filtros con lógica Total on/off ──
+        # Inicializar estado: Total=True, individuales=False
+        total_key = f"hist_{label}_Total_on"
+        if total_key not in st.session_state:
+            st.session_state[total_key] = True
+        for c in all_clas:
+            ck = f"hist_{label}_{c}_on"
+            if ck not in st.session_state:
+                st.session_state[ck] = False
+
+        btn_colors = {"Total": "#162447", **clas_colors}
+        all_opts = ["Total"] + all_clas
+        ncols = len(all_opts)
+        cols_b = st.columns(ncols)
+
+        # Render botones
+        for idx_b, opt in enumerate(all_opts):
+            key_b = f"hist_{label}_{opt}_on"
+            is_on = st.session_state[key_b]
+            col_b = btn_colors.get(opt, "#94A3B8")
+            with cols_b[idx_b]:
+                # Badge de color
+                st.markdown(
+                    f"<div style='text-align:center;margin-bottom:2px;'>"
+                    f"<span style='display:inline-block;padding:5px 10px;border-radius:8px;"
+                    f"font-size:11px;font-weight:500;"
+                    f"background:{''+col_b if is_on else '#EEF2F7'};"
+                    f"color:{'#fff' if is_on else '#94A3B8'};"
+                    f"border:1px solid {''+col_b if is_on else '#C7D2FE'};width:100%;'>"
+                    f"{opt}</span></div>",
+                    unsafe_allow_html=True)
+                if st.button("·", key=f"hbtn_{label}_{opt}", use_container_width=True):
+                    if opt == "Total":
+                        new_total = not st.session_state[total_key]
+                        st.session_state[total_key] = new_total
+                        # Total ON → activa todas; Total OFF → desactiva todas
+                        for c in all_clas:
+                            st.session_state[f"hist_{label}_{c}_on"] = new_total
+                    else:
+                        st.session_state[key_b] = not is_on
+                        # Si alguna individual cambia, Total refleja si todas están ON
+                        all_on = all(st.session_state[f"hist_{label}_{c}_on"] for c in all_clas)
+                        st.session_state[total_key] = all_on
+                    st.rerun()
+
+        # Determinar qué mostrar
+        show_total  = st.session_state[total_key]
+        show_clas   = {c: st.session_state[f"hist_{label}_{c}_on"] for c in all_clas}
+
+        # Gráfica
         fig_h = go.Figure()
-        if "Total" in selected and tots_h:
+        if show_total and tots_h:
             fig_h.add_trace(go.Scatter(
                 x=wks_h, y=tots_h, name="Total", mode="lines+markers",
                 line=dict(color="#162447", width=2.5, dash="dot"), marker=dict(size=5),
                 hovertemplate="%{x}: %{y:,} uds<extra>Total</extra>"))
         for c in all_clas:
-            if c not in selected: continue
+            if not show_clas.get(c): continue
             vals = [int(hist[w].get(c,0)) for w in wks_h]
             color = clas_colors.get(c, "#94A3B8")
             fig_h.add_trace(go.Scatter(
                 x=wks_h, y=vals, name=c, mode="lines+markers",
                 line=dict(color=color, width=1.5), marker=dict(size=4),
                 hovertemplate=f"%{{x}}: %{{y:,}}<extra>{c}</extra>"))
-        fig_h.update_layout(
-            height=300, margin=dict(t=10,b=10,l=10,r=10),
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            legend=dict(font=dict(size=11), orientation="h", y=1.1, x=0),
-            xaxis=dict(tickfont=dict(size=11), showgrid=False,
-                       tickangle=-30 if len(wks_h)>8 else 0),
-            yaxis=dict(tickfont=dict(size=10), tickformat=",", gridcolor="rgba(0,0,0,0.04)"))
-        st.plotly_chart(fig_h, use_container_width=True)
+        if not show_total and not any(show_clas.values()):
+            st.info("Selecciona al menos una clasificación para ver la gráfica.")
+        else:
+            fig_h.update_layout(
+                height=300, margin=dict(t=10,b=10,l=10,r=10),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                legend=dict(font=dict(size=11), orientation="h", y=1.1, x=0),
+                xaxis=dict(tickfont=dict(size=11), showgrid=False,
+                           tickangle=-30 if len(wks_h)>8 else 0),
+                yaxis=dict(tickfont=dict(size=10), tickformat=",", gridcolor="rgba(0,0,0,0.04)"))
+            st.plotly_chart(fig_h, use_container_width=True)
 
         # Tabla resumen
         st.markdown(f"<div style='font-size:13px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;'>Resumen por semana</div>", unsafe_allow_html=True)
