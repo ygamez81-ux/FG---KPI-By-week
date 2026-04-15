@@ -1580,7 +1580,7 @@ with tab_hist:
                     background:{''+col_b if is_on else '#fff'};color:{'#fff' if is_on else '#94A3B8'};
                     border:1px solid {''+col_b if is_on else '#C7D2FE'};cursor:pointer;width:100%;">
                     {'●' if is_on else '○'} {opt}</span></div>""", unsafe_allow_html=True)
-                if st.button(opt, key=f"hbtn_{label}_{opt}", use_container_width=True, label_visibility="collapsed"):
+                if st.button(opt, key=f"hbtn_{label}_{opt}", use_container_width=True):
                     st.session_state[key_b] = not is_on
                     st.rerun()
             active[opt] = st.session_state[key_b]
