@@ -1528,37 +1528,52 @@ with tab_hist:
             st.info(f"No hay datos históricos para {label}. Clasifica y sube semanas anteriores.")
             return
 
-        wks_h = sorted(hist.keys(), key=wk_sort)
-        tots_h = [sum(hist[w].values()) for w in wks_h]
-        max_t = max(tots_h) if tots_h else 1
-        min_t = min(tots_h) if tots_h else 0
-        avg_t = int(sum(tots_h)/len(tots_h)) if tots_h else 0
-        wk_max = wks_h[tots_h.index(max_t)] if tots_h else "—"
-        wk_min = wks_h[tots_h.index(min_t)] if tots_h else "—"
+        wks_all = sorted(hist.keys(), key=wk_sort)
+        tots_all = [sum(hist[w].values()) for w in wks_all]
+        max_t = max(tots_all) if tots_all else 1
+        min_t = min(tots_all) if tots_all else 0
+        avg_t = int(sum(tots_all)/len(tots_all)) if tots_all else 0
+        wk_max = wks_all[tots_all.index(max_t)] if tots_all else "—"
+        wk_min = wks_all[tots_all.index(min_t)] if tots_all else "—"
 
+        # ── KPI cards ──
         k1,k2,k3,k4 = st.columns(4)
-        with k1: st.markdown(kpi_card("Semanas cargadas", str(len(wks_h)), f"{wks_h[0]} → {wks_h[-1]}" if wks_h else ""), unsafe_allow_html=True)
-        with k2: st.markdown(kpi_card("Semana más alta", wk_max, fmtk(max_t),'#10B981','#10B981'), unsafe_allow_html=True)
-        with k3: st.markdown(kpi_card("Semana más baja", wk_min, fmtk(min_t),'#EF4444','#EF4444'), unsafe_allow_html=True)
-        with k4: st.markdown(kpi_card("Promedio semanal", fmtk(avg_t), "por semana",'#F59E0B','#F59E0B'), unsafe_allow_html=True)
+        with k1: st.markdown(kpi_card("Semanas cargadas", str(len(wks_all)), f"{wks_all[0]} → {wks_all[-1]}" if wks_all else ""), unsafe_allow_html=True)
+        with k2: st.markdown(kpi_card("Semana más alta", wk_max, f"{sum(hist[wk_max].values()):,} uds",'#10B981','#10B981'), unsafe_allow_html=True)
+        with k3: st.markdown(kpi_card("Semana más baja", wk_min, f"{sum(hist[wk_min].values()):,} uds",'#EF4444','#EF4444'), unsafe_allow_html=True)
+        with k4: st.markdown(kpi_card("Promedio semanal", fmtk(avg_t), f"{avg_t:,} uds",'#F59E0B','#F59E0B'), unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Filter using Streamlit multiselect - actually interactive
-        selected = st.multiselect(
-            "Ver clasificaciones:",
-            options=['Total'] + all_clas,
-            default=['Total'] + all_clas,
-            key=f"hist_{label}_filter"
-        )
-        if not selected: selected = ['Total'] + all_clas
+        # ── Filtros ──
+        col_f, col_r = st.columns([3,1])
+        with col_f:
+            selected = st.multiselect(
+                "Clasificaciones:",
+                options=['Total'] + all_clas,
+                default=['Total'] + all_clas,
+                key=f"hist_{label}_filter"
+            )
+            if not selected: selected = ['Total'] + all_clas
+        with col_r:
+            rango = st.selectbox("Rango de semanas:", 
+                ["Todas","Últimas 4","Últimas 8","Últimas 13"],
+                key=f"hist_{label}_rango")
 
-        # Chart - only show selected
+        # Apply range filter
+        n = len(wks_all)
+        if rango == "Últimas 4":   wks_h = wks_all[max(0,n-4):]
+        elif rango == "Últimas 8": wks_h = wks_all[max(0,n-8):]
+        elif rango == "Últimas 13":wks_h = wks_all[max(0,n-13):]
+        else:                      wks_h = wks_all
+        tots_h = [sum(hist[w].values()) for w in wks_h]
+
+        # ── Gráfica ──
         fig_h = go.Figure()
         if 'Total' in selected:
             fig_h.add_trace(go.Scatter(x=wks_h, y=tots_h, name='Total', mode='lines+markers',
-                line=dict(color='#162447', width=2.5, dash='dot'), marker=dict(size=4),
-                hovertemplate='%{x}: %{y:,}<extra>Total</extra>'))
+                line=dict(color='#162447', width=2.5, dash='dot'), marker=dict(size=5),
+                hovertemplate='%{x}: %{y:,} uds<extra>Total</extra>'))
         for c in all_clas:
             if c not in selected: continue
             vals = [int(hist[w].get(c,0)) for w in wks_h]
@@ -1567,19 +1582,21 @@ with tab_hist:
                 line=dict(color=color, width=1.5), marker=dict(size=3),
                 hovertemplate=f'%{{x}}: %{{y:,}}<extra>{c}</extra>'))
         fig_h.update_layout(
-            height=240, margin=dict(t=10,b=10,l=10,r=10),
+            height=280, margin=dict(t=10,b=10,l=10,r=10),
             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            legend=dict(font=dict(size=10), orientation='h', y=1.1),
-            xaxis=dict(tickfont=dict(size=10), showgrid=False),
-            yaxis=dict(tickfont=dict(size=10), tickformat=',', gridcolor='rgba(0,0,0,0.05)'))
+            legend=dict(font=dict(size=11), orientation='h', y=1.12, x=0),
+            xaxis=dict(tickfont=dict(size=11), showgrid=False,
+                       tickangle=-30 if len(wks_h)>8 else 0),
+            yaxis=dict(tickfont=dict(size=10), tickformat=',', gridcolor='rgba(0,0,0,0.04)'))
         st.plotly_chart(fig_h, use_container_width=True)
 
-        # Summary table
+        # ── Tabla resumen ──
         st.markdown(f"<div style='font-size:13px;font-weight:500;color:{INDIGO};text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;'>Resumen por semana</div>", unsafe_allow_html=True)
         rows_h = []
+        wk_cur = wks_all[-1] if wks_all else None
         for i,w in enumerate(wks_h):
             d = hist[w]
-            row = {'Semana': w}
+            row = {'Semana': f"★ {w}" if w==wk_cur else w}
             for c in all_clas:
                 row[c] = int(d.get(c,0))
             row['Total'] = int(sum(d.values()))
@@ -1587,9 +1604,18 @@ with tab_hist:
                 prev_tot = int(sum(hist[wks_h[i-1]].values()))
                 diff_t = row['Total'] - prev_tot
                 row['▲▼'] = f"{'+' if diff_t>=0 else ''}{diff_t:,}"
+                row['Tend.'] = '▲' if diff_t>0 else ('▼' if diff_t<0 else '—')
             else:
-                row['▲▼'] = '—'
+                row['▲▼'] = '—'; row['Tend.'] = '—'
             rows_h.append(row)
+        # Fila promedio
+        avg_row = {'Semana': 'Promedio'}
+        for c in all_clas:
+            vals_c = [int(hist[w].get(c,0)) for w in wks_h]
+            avg_row[c] = int(sum(vals_c)/len(vals_c)) if vals_c else 0
+        avg_row['Total'] = int(sum([sum(hist[w].values()) for w in wks_h])/len(wks_h)) if wks_h else 0
+        avg_row['▲▼'] = '—'; avg_row['Tend.'] = '—'
+        rows_h.append(avg_row)
         st.dataframe(pd.DataFrame(rows_h), use_container_width=True, hide_index=True)
 
     with hist_tabs[0]:
