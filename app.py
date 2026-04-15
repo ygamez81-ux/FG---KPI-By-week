@@ -1536,6 +1536,7 @@ with tab_hist:
         wk_max = wks_all[tots_all.index(max_t)] if tots_all else "—"
         wk_min = wks_all[tots_all.index(min_t)] if tots_all else "—"
 
+        # KPI cards
         k1,k2,k3,k4 = st.columns(4)
         with k1: st.markdown(kpi_card("Semanas cargadas", str(len(wks_all)), f"{wks_all[0]} → {wks_all[-1]}" if wks_all else ""), unsafe_allow_html=True)
         with k2: st.markdown(kpi_card("Semana más alta", wk_max, f"{sum(hist[wk_max].values()):,} uds",'#10B981','#10B981'), unsafe_allow_html=True)
@@ -1544,46 +1545,56 @@ with tab_hist:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Rango selector
-        rango = st.selectbox("Rango de semanas:",
-            ["Todas las semanas","Últimas 4","Últimas 8","Últimas 13"],
-            key=f"hist_{label}_rango")
+        # Slider de rango de semanas
         n = len(wks_all)
-        if rango == "Últimas 4":    wks_h = wks_all[max(0,n-4):]
-        elif rango == "Últimas 8":  wks_h = wks_all[max(0,n-8):]
-        elif rango == "Últimas 13": wks_h = wks_all[max(0,n-13):]
-        else:                       wks_h = wks_all
+        if n > 1:
+            wk_nums = [wk_sort(w) for w in wks_all]
+            min_wk = min(wk_nums); max_wk = max(wk_nums)
+            rng = st.slider(
+                "Rango de semanas:",
+                min_value=min_wk, max_value=max_wk,
+                value=(min_wk, max_wk),
+                key=f"hist_{label}_slider"
+            )
+            wks_h = [w for w in wks_all if rng[0] <= wk_sort(w) <= rng[1]]
+        else:
+            wks_h = wks_all
         tots_h = [sum(hist[w].values()) for w in wks_h]
 
-        # Toggle buttons para clasificaciones
+        # Toggle buttons - clasificaciones
         btn_colors = {"Total": "#162447", **clas_colors}
         all_opts = ["Total"] + all_clas
-        st.markdown("<div style='font-size:11px;color:#818CF8;margin-bottom:4px;'>Clasificaciones:</div>", unsafe_allow_html=True)
-        cols_btns = st.columns(len(all_opts))
-        active_clas = {}
+        st.markdown("<div style='font-size:11px;color:#818CF8;margin-bottom:6px;'>Clasificaciones:</div>", unsafe_allow_html=True)
+        cols_b = st.columns(len(all_opts))
+        active = {}
         for idx_b, opt in enumerate(all_opts):
             key_b = f"hist_{label}_{opt}_on"
             if key_b not in st.session_state:
                 st.session_state[key_b] = True
-            with cols_btns[idx_b]:
+            with cols_b[idx_b]:
                 col_b = btn_colors.get(opt, "#94A3B8")
                 is_on = st.session_state[key_b]
-                label_btn = f"● {opt}" if is_on else f"○ {opt}"
-                if st.button(label_btn, key=f"hbtn_{label}_{opt}", use_container_width=True):
+                # Colored button when ON, gray outline when OFF
+                st.markdown(f"""<div style="text-align:center;">
+                    <span style="display:inline-block;padding:4px 8px;border-radius:20px;font-size:11px;
+                    background:{''+col_b if is_on else '#fff'};color:{'#fff' if is_on else '#94A3B8'};
+                    border:1px solid {''+col_b if is_on else '#C7D2FE'};cursor:pointer;width:100%;">
+                    {'●' if is_on else '○'} {opt}</span></div>""", unsafe_allow_html=True)
+                if st.button(opt, key=f"hbtn_{label}_{opt}", use_container_width=True, label_visibility="collapsed"):
                     st.session_state[key_b] = not is_on
                     st.rerun()
-            active_clas[opt] = st.session_state[key_b]
+            active[opt] = st.session_state[key_b]
 
-        # Gráfica
+        # Gráfica — solo líneas activas
         fig_h = go.Figure()
-        if active_clas.get("Total", True):
+        if active.get("Total", True) and tots_h:
             fig_h.add_trace(go.Scatter(x=wks_h, y=tots_h, name="Total", mode="lines+markers",
                 line=dict(color="#162447", width=2.5, dash="dot"), marker=dict(size=5),
                 hovertemplate="%{x}: %{y:,} uds<extra>Total</extra>"))
         for c in all_clas:
-            if not active_clas.get(c, True): continue
+            if not active.get(c, True): continue
             vals = [int(hist[w].get(c,0)) for w in wks_h]
-            color = clas_colors.get(c,"#94A3B8")
+            color = clas_colors.get(c, "#94A3B8")
             fig_h.add_trace(go.Scatter(x=wks_h, y=vals, name=c, mode="lines+markers",
                 line=dict(color=color, width=1.5), marker=dict(size=4),
                 hovertemplate=f"%{{x}}: %{{y:,}}<extra>{c}</extra>"))
@@ -1614,13 +1625,14 @@ with tab_hist:
             else:
                 row["▲▼"] = "—"; row["Tend."] = "—"
             rows_h.append(row)
-        avg_row = {"Semana": "Promedio"}
-        for c in all_clas:
-            vals_c = [int(hist[w].get(c,0)) for w in wks_h]
-            avg_row[c] = int(sum(vals_c)/len(vals_c)) if vals_c else 0
-        avg_row["Total"] = int(sum([sum(hist[w].values()) for w in wks_h])/len(wks_h)) if wks_h else 0
-        avg_row["▲▼"] = "—"; avg_row["Tend."] = "—"
-        rows_h.append(avg_row)
+        if rows_h:
+            avg_row = {"Semana": "Promedio"}
+            for c in all_clas:
+                vals_c = [int(hist[w].get(c,0)) for w in wks_h]
+                avg_row[c] = int(sum(vals_c)/len(vals_c)) if vals_c else 0
+            avg_row["Total"] = int(sum([sum(hist[w].values()) for w in wks_h])/len(wks_h))
+            avg_row["▲▼"] = "—"; avg_row["Tend."] = "—"
+            rows_h.append(avg_row)
         st.dataframe(pd.DataFrame(rows_h), use_container_width=True, hide_index=True)
     with hist_tabs[0]:
         render_hist_tab(hist_hn2, CLAS_COLORS_HN, HN_FG_CLAS+HN_WIP_CLAS, INDIGO, 'Honduras')
