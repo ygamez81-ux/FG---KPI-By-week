@@ -1570,17 +1570,23 @@ with tab_hist:
         for idx_b, opt in enumerate(all_opts):
             key_b = f"hist_{label}_{opt}_on"
             if key_b not in st.session_state:
-                st.session_state[key_b] = True
+                st.session_state[key_b] = True  # todos activos por defecto
+            is_on = st.session_state[key_b]
+            col_b = btn_colors.get(opt, "#94A3B8")
             with cols_b[idx_b]:
-                col_b = btn_colors.get(opt, "#94A3B8")
-                is_on = st.session_state[key_b]
-                # Colored button when ON, gray outline when OFF
-                st.markdown(f"""<div style="text-align:center;">
-                    <span style="display:inline-block;padding:4px 8px;border-radius:20px;font-size:11px;
-                    background:{''+col_b if is_on else '#fff'};color:{'#fff' if is_on else '#94A3B8'};
-                    border:1px solid {''+col_b if is_on else '#C7D2FE'};cursor:pointer;width:100%;">
-                    {'●' if is_on else '○'} {opt}</span></div>""", unsafe_allow_html=True)
-                if st.button(opt, key=f"hbtn_{label}_{opt}", use_container_width=True):
+                # Mostrar badge de color encima del botón
+                st.markdown(
+                    f"<div style='text-align:center;margin-bottom:2px;'>"
+                    f"<span style='display:inline-block;padding:3px 10px;border-radius:20px;"
+                    f"font-size:11px;background:{''+col_b if is_on else '#EEF2F7'};"
+                    f"color:{'#fff' if is_on else '#94A3B8'};"
+                    f"border:1px solid {''+col_b if is_on else '#C7D2FE'};width:100%;box-sizing:border-box;'>"
+                    f"{'●' if is_on else '○'} {opt}</span></div>",
+                    unsafe_allow_html=True
+                )
+                # Botón invisible que captura el clic y alterna el estado
+                clicked = st.button("↕", key=f"hbtn_{label}_{opt}", use_container_width=True)
+                if clicked:
                     st.session_state[key_b] = not is_on
                     st.rerun()
             active[opt] = st.session_state[key_b]
