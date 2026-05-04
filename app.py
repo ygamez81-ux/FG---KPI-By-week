@@ -91,7 +91,9 @@ def classify_honduras(carton_df, open_df):
     df['Clasificacion']=None
     open_po=set(open_df['PONumber'].astype(str).str.strip().dropna())
     no_vmi=df['Customer Name'].isin(NO_VMI)
-    df.loc[df['Is Second'].isin(['Second','Third']),'Clasificacion']='Irregulares'
+    # Facturado FIRST - overrides all other rules
+    df.loc[df['Box Tag'].astype(str).str.strip().isin(['Invoiced','Facturado']),'Clasificacion']='Facturado'
+    df.loc[df['Is Second'].isin(['Second','Third'])&df['Clasificacion'].isna(),'Clasificacion']='Irregulares'
     df.loc[(df['Order\nType']=='Locker Stock')&~no_vmi&df['Clasificacion'].isna(),'Clasificacion']='VMI'
     df.loc[(df['Customer']==12)&(df['Color\nDescription']=='PFD White')&~no_vmi&df['Clasificacion'].isna(),'Clasificacion']='VMI'
     df.loc[(df['Customer']==81)&df['Style'].astype(str).str.upper().str.endswith('-VMI')&~no_vmi&df['Clasificacion'].isna(),'Clasificacion']='VMI'
@@ -100,7 +102,6 @@ def classify_honduras(carton_df, open_df):
     df.loc[mp&df['PONumber'].astype(str).str.strip().isin(open_po)&df['Clasificacion'].isna(),'Clasificacion']='Regular'
     p1=df['PONumber'].astype(str).str.strip();p2=df['PONumbers'].astype(str).str.strip()
     df.loc[df['Clasificacion'].isna()&(p1.isin(open_po)|p2.isin(open_po)),'Clasificacion']='Regular'
-    df.loc[df['Clasificacion'].isna()&(df['Box Tag'].astype(str).str.strip().isin(['Invoiced','Facturado'])),'Clasificacion']='Facturado'
     df.loc[df['Clasificacion'].isna()&df['Box Tag'].astype(str).str.contains('Excess',na=False),'Clasificacion']='Exceso'
     df.loc[df['Clasificacion'].isna()&(df['Box Tag']=='Obsolete'),'Clasificacion']='Obsoleto'
     df['Create Date']=pd.to_datetime(df['Create Date'],errors='coerce')
@@ -130,8 +131,8 @@ def classify_tlp(carton_df):
     df['Quantity']=pd.to_numeric(df['Quantity'].astype(str).str.replace(',',''),errors='coerce').fillna(0)
     df['Customer Name']=df['Customer'].astype(str)
     df['Clasificacion']=None
-    df.loc[df['Is Second'].isin(['Second','Third']),'Clasificacion']='TLP Irregulars'
-    df.loc[df['Clasificacion'].isna()&(df['Box Tag'].astype(str).str.strip().isin(['Invoiced','Facturado'])),'Clasificacion']='Facturado'
+    df.loc[df['Box Tag'].astype(str).str.strip().isin(['Invoiced','Facturado']),'Clasificacion']='Facturado'
+    df.loc[df['Is Second'].isin(['Second','Third'])&df['Clasificacion'].isna(),'Clasificacion']='TLP Irregulars'
     df.loc[df['Clasificacion'].isna()&(df['Box Tag']=='Blanks Excess'),'Clasificacion']='TLP Blanks Excess'
     df.loc[df['Clasificacion'].isna()&(df['Box Tag']=='Printed Excess'),'Clasificacion']='TLP Printed Excess'
     df.loc[df['Clasificacion'].isna()&df['Box\nStatus'].isin(['Packed','Picked']),'Clasificacion']='TLP sin clasificacion'
@@ -1340,7 +1341,8 @@ with tab_comp:
         fg_c   = HN_FG_CLAS  if bodega_key=='hn' else TLP_FG_CLAS
         wip_c  = HN_WIP_CLAS if bodega_key=='hn' else TLP_WIP_CLAS
         vmap_c = {"Todo":"all","Finished Goods":"fg","Wip":"wip"}
-        weeks_data = [filter_hist(hist.get(w,{}), vmap_c.get(view_c,"all"), fg_c, wip_c) for w in last4]
+        weeks_data = [{k:v for k,v in filter_hist(hist.get(w,{}), vmap_c.get(view_c,"all"), fg_c, wip_c).items()
+                        if k != 'Regular Wip'} for w in last4]
         totals     = [sum(d.values()) for d in weeks_data]
 
 
