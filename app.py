@@ -100,7 +100,7 @@ def classify_honduras(carton_df, open_df):
     df.loc[mp&df['PONumber'].astype(str).str.strip().isin(open_po)&df['Clasificacion'].isna(),'Clasificacion']='Regular'
     p1=df['PONumber'].astype(str).str.strip();p2=df['PONumbers'].astype(str).str.strip()
     df.loc[df['Clasificacion'].isna()&(p1.isin(open_po)|p2.isin(open_po)),'Clasificacion']='Regular'
-    df.loc[df['Clasificacion'].isna()&(df['Box Tag'].astype(str).str.strip()=='Facturado'),'Clasificacion']='Facturado'
+    df.loc[df['Clasificacion'].isna()&(df['Box Tag'].astype(str).str.strip().isin(['Invoiced','Facturado'])),'Clasificacion']='Facturado'
     df.loc[df['Clasificacion'].isna()&df['Box Tag'].astype(str).str.contains('Excess',na=False),'Clasificacion']='Exceso'
     df.loc[df['Clasificacion'].isna()&(df['Box Tag']=='Obsolete'),'Clasificacion']='Obsoleto'
     df['Create Date']=pd.to_datetime(df['Create Date'],errors='coerce')
@@ -131,7 +131,7 @@ def classify_tlp(carton_df):
     df['Customer Name']=df['Customer'].astype(str)
     df['Clasificacion']=None
     df.loc[df['Is Second'].isin(['Second','Third']),'Clasificacion']='TLP Irregulars'
-    df.loc[df['Clasificacion'].isna()&(df['Box Tag'].astype(str).str.strip()=='Facturado'),'Clasificacion']='Facturado'
+    df.loc[df['Clasificacion'].isna()&(df['Box Tag'].astype(str).str.strip().isin(['Invoiced','Facturado'])),'Clasificacion']='Facturado'
     df.loc[df['Clasificacion'].isna()&(df['Box Tag']=='Blanks Excess'),'Clasificacion']='TLP Blanks Excess'
     df.loc[df['Clasificacion'].isna()&(df['Box Tag']=='Printed Excess'),'Clasificacion']='TLP Printed Excess'
     df.loc[df['Clasificacion'].isna()&df['Box\nStatus'].isin(['Packed','Picked']),'Clasificacion']='TLP sin clasificacion'
@@ -705,8 +705,10 @@ def parse_prev_hn(df_raw):
 
 def parse_prev_tlp(df_raw):
     try:
-        clas_map = {'TLP irregulars':'Irregulares','TLP printed excess':'Exceso Printed',
-                    'TLP sin clasificacion':'Sin Clasificacion','TLP Blanks excess':'Exceso Blanks',
+        clas_map = {'TLP irregulars':'Irregulares','TLP IRREGULARS':'Irregulares',
+                    'TLP printed excess':'Exceso Printed','TLP sin clasificacion':'Sin Clasificacion',
+                    'TLP sin clasificacio':'Sin Clasificacion',
+                    'TLP Blanks excess':'Exceso Blanks','TLP blanks excess':'Exceso Blanks',
                     'Invoiced':'Facturado','Liability':'Facturado'}
         result = {}
         headers = [str(h).strip() for h in df_raw.iloc[1].tolist()]
