@@ -706,7 +706,8 @@ def parse_prev_hn(df_raw):
 def parse_prev_tlp(df_raw):
     try:
         clas_map = {'TLP irregulars':'Irregulares','TLP printed excess':'Exceso Printed',
-                    'TLP sin clasificacion':'Sin Clasificacion','TLP Blanks excess':'Exceso Blanks'}
+                    'TLP sin clasificacion':'Sin Clasificacion','TLP Blanks excess':'Exceso Blanks',
+                    'Invoiced':'Facturado','Liability':'Facturado'}
         result = {}
         headers = [str(h).strip() for h in df_raw.iloc[1].tolist()]
         for i in range(2, len(df_raw)):
@@ -1235,8 +1236,16 @@ with tab_hn:
         irr_h  = int(df_h[df_h['Clasificacion']=='Irregulares']['Quantity'].sum())
         obs_h  = int(df_h[df_h['Clasificacion']=='Obsoleto']['Quantity'].sum())
         exc_h  = int(df_h[df_h['Clasificacion']=='Exceso']['Quantity'].sum())
+        fac_h  = int(df_h[df_h['Clasificacion']=='Facturado']['Quantity'].sum())
         wip_h  = int(df_h[df_h['Clasificacion'].isin(HN_WIP_CLAS)]['Quantity'].sum())
-        k1,k2,k3,k4,k5,k6 = st.columns(6)
+        k1,k2,k3,k4,k5,k6,k7 = st.columns(7)
+        with k1: st.markdown(kpi_card("Total", fmtk(tot_h), f"{caj_h:,} cajas"), unsafe_allow_html=True)
+        with k2: st.markdown(kpi_card("Regular", fmtk(reg_h), f"{reg_h/max(tot_h,1)*100:.1f}%", INDIGO, INDIGO), unsafe_allow_html=True)
+        with k3: st.markdown(kpi_card("VMI", fmtk(vmi_h), f"{vmi_h/max(tot_h,1)*100:.1f}%", INDIGO2, INDIGO2), unsafe_allow_html=True)
+        with k4: st.markdown(kpi_card("Irregulares", fmtk(irr_h), f"{irr_h/max(tot_h,1)*100:.1f}%",'#F59E0B','#F59E0B'), unsafe_allow_html=True)
+        with k5: st.markdown(kpi_card("Obsoleto+Exceso", fmtk(obs_h+exc_h), f"{(obs_h+exc_h)/max(tot_h,1)*100:.1f}%",'#EF4444','#EF4444'), unsafe_allow_html=True)
+        with k6: st.markdown(kpi_card("Facturado", fmtk(fac_h), f"{fac_h/max(tot_h,1)*100:.1f}%",'#0EA5E9','#0EA5E9'), unsafe_allow_html=True)
+        with k7: st.markdown(kpi_card("Wip", fmtk(wip_h), f"{wip_h/max(tot_h,1)*100:.1f}%", SLATE,'#64748B'), unsafe_allow_html=True)
         with k1: st.markdown(kpi_card("Total", fmtk(tot_h), f"{caj_h:,} cajas"), unsafe_allow_html=True)
         with k2: st.markdown(kpi_card("Regular", fmtk(reg_h), f"{reg_h/max(tot_h,1)*100:.1f}%", INDIGO, INDIGO), unsafe_allow_html=True)
         with k3: st.markdown(kpi_card("VMI", fmtk(vmi_h), f"{vmi_h/max(tot_h,1)*100:.1f}%", INDIGO2, INDIGO2), unsafe_allow_html=True)
