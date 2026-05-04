@@ -100,6 +100,7 @@ def classify_honduras(carton_df, open_df):
     df.loc[mp&df['PONumber'].astype(str).str.strip().isin(open_po)&df['Clasificacion'].isna(),'Clasificacion']='Regular'
     p1=df['PONumber'].astype(str).str.strip();p2=df['PONumbers'].astype(str).str.strip()
     df.loc[df['Clasificacion'].isna()&(p1.isin(open_po)|p2.isin(open_po)),'Clasificacion']='Regular'
+    df.loc[df['Clasificacion'].isna()&(df['Box Tag'].astype(str).str.strip()=='Facturado'),'Clasificacion']='Facturado'
     df.loc[df['Clasificacion'].isna()&df['Box Tag'].astype(str).str.contains('Excess',na=False),'Clasificacion']='Exceso'
     df.loc[df['Clasificacion'].isna()&(df['Box Tag']=='Obsolete'),'Clasificacion']='Obsoleto'
     df['Create Date']=pd.to_datetime(df['Create Date'],errors='coerce')
@@ -116,7 +117,7 @@ def classify_honduras(carton_df, open_df):
     df['Type']=''
     df.loc[(cl=='Regular')&bs.isin(['Packed','Picked']),'Type']='Finished Goods'
     df.loc[(cl=='Regular')&bs.isin(['Inventory','WIP']),'Type']='Wip'
-    df.loc[cl.isin(['VMI','Irregulares','Obsoleto','Exceso']),'Type']='Finished Goods'
+    df.loc[cl.isin(['VMI','Irregulares','Obsoleto','Exceso','Facturado']),'Type']='Finished Goods'
     # Rename Regular Wip to avoid duplication in tables
     df.loc[(df['Clasificacion']=='Regular')&(df['Type']=='Wip'),'Clasificacion']='Regular Wip'
     df=apply_program(df)
@@ -130,6 +131,7 @@ def classify_tlp(carton_df):
     df['Customer Name']=df['Customer'].astype(str)
     df['Clasificacion']=None
     df.loc[df['Is Second'].isin(['Second','Third']),'Clasificacion']='TLP Irregulars'
+    df.loc[df['Clasificacion'].isna()&(df['Box Tag'].astype(str).str.strip()=='Facturado'),'Clasificacion']='Facturado'
     df.loc[df['Clasificacion'].isna()&(df['Box Tag']=='Blanks Excess'),'Clasificacion']='TLP Blanks Excess'
     df.loc[df['Clasificacion'].isna()&(df['Box Tag']=='Printed Excess'),'Clasificacion']='TLP Printed Excess'
     df.loc[df['Clasificacion'].isna()&df['Box\nStatus'].isin(['Packed','Picked']),'Clasificacion']='TLP sin clasificacion'
@@ -743,16 +745,16 @@ SLATE = '#94A3B8'
 
 CLAS_COLORS_HN = {
     'Regular': '#4F46E5', 'VMI': '#6366F1', 'Irregulares': '#F59E0B',
-    'Exceso': '#F97316', 'Obsoleto': '#EF4444', 'Wip': '#94A3B8',
+    'Exceso': '#F97316', 'Obsoleto': '#EF4444', 'Wip': '#94A3B8', 'Facturado': '#0EA5E9',
 }
 CLAS_COLORS_TLP = {
     'Sin Clasificacion': '#4F46E5', 'Irregulares': '#F59E0B',
-    'Exceso Blanks': '#F97316', 'Exceso Printed': '#EF4444', 'Wip': '#94A3B8',
+    'Exceso Blanks': '#F97316', 'Exceso Printed': '#EF4444', 'Wip': '#94A3B8', 'Facturado': '#0EA5E9',
 }
 
-HN_FG_CLAS  = ['Regular','VMI','Irregulares','Exceso','Obsoleto']
+HN_FG_CLAS  = ['Regular','VMI','Irregulares','Exceso','Obsoleto','Facturado']
 HN_WIP_CLAS = ['Regular Wip']
-TLP_FG_CLAS = ['Sin Clasificacion','Irregulares','Exceso Blanks','Exceso Printed']
+TLP_FG_CLAS = ['Sin Clasificacion','Irregulares','Exceso Blanks','Exceso Printed','Facturado']
 TLP_WIP_CLAS= ['Wip']
 
 def filter_df(df, view, fg_clas, wip_clas):
@@ -1009,8 +1011,13 @@ def render_analysis(r_cur, prev_df, prev_clas_dict, clas_colors, label):
 with st.sidebar:
     st.markdown("## Inventory Hub")
     st.caption("v3 — 2025-04-11")
-    week_label = st.text_input("Semana", value="WK13", key="week_input")
+    from datetime import datetime as _dt
+    _iso_wk = _dt.now().isocalendar()[1]
+    _inv_wk = f"WK{_iso_wk - 1}"
+    week_label = st.text_input("Semana", value=_inv_wk, key="week_input",
+        help="Calculado automáticamente: cierre sábado semana anterior")
     st.markdown(f"**Semana: {week_label}**")
+    st.caption(f"Hoy semana {_iso_wk} → inventario {_inv_wk}")
     st.markdown("---")
     st.markdown("**Cargar archivos**")
     st.caption("La app detecta automáticamente cada archivo por su nombre.")
